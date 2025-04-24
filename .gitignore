@@ -1,0 +1,78 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*.tmp
+*.bak
+*.old
+*.orig
+*.rej
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Dart & Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+pubspec.lock
+
+# Android
+android/.gradle/
+android/.cxx/
+android/local.properties
+android/.idea/
+android/build/
+
+# iOS
+ios/.generated/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/.symlinks/
+ios/Pods/
+ios/.dart_tool/
+ios/build/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/build/
+
+# Linux
+linux/Flutter/ephemeral/
+linux/build/
+
+# Windows
+windows/Flutter/ephemeral/
+windows/build/
+
+# Web
+web/manifest.json
+web/favicon.png
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+# Exclude specific project files
+filelist.txt
+toplist.txt
+tree-summary.txt
