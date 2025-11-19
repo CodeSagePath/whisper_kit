@@ -82,6 +82,37 @@ A Flutter plugin that brings OpenAI's Whisper ASR (Automatic Speech Recognition)
 
 ---
 
+## Screenshots
+
+<div align="center">
+
+### Recording Interface
+| Recording Screen | Transcription Progress |
+|:---:|:---:|
+| ![Main Interface](assets/screenshots/1.jpg) | ![Model Download Progress](assets/screenshots/2.jpg) |
+
+### Transcription Results
+| Result Display | Model Download |
+|:---:|:---:|
+| ![Transcription Progress](assets/screenshots/3.jpg) | ![Transcription Result (original language)](assets/screenshots/4.jpg) |
+
+### Additional Features
+| Audio Management | Status Indicators |
+|:---:|:---:|
+| ![Transcription Result (translated to english)](assets/screenshots/5.jpg) | ![Recording Screen](assets/screenshots/6.jpg) |
+
+| Progress Widgets | Processing Display |
+|:---:|:---:|
+| ![Recording Progress](assets/screenshots/7.jpg) | ![Recorded Audio Result](assets/screenshots/8.jpg) |
+
+| Main Interface |
+|:---:|
+| ![English file (already existing) result](assets/screenshots/9.jpg) |
+
+</div>
+
+---
+
 ## Project Structure
 
 ├── lib/  
