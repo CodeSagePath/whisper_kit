@@ -92,40 +92,78 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
   }
 
   Future<void> transcribe(String filePath) async {
+    if (filePath.isEmpty) {
+      state = AsyncError(
+        StateError("No audio file selected"),
+        StackTrace.current,
+      );
+      return;
+    }
+
     final WhisperModel model = ref.read(modelProvider);
+    if (model == WhisperModel.none) {
+      state = AsyncError(
+        StateError("No model selected"),
+        StackTrace.current,
+      );
+      return;
+    }
 
     state = const AsyncLoading();
 
-    // Reset download progress
-    ref.read(downloadProgressProvider.notifier).state = 0.0;
-    ref.read(downloadStatusProvider.notifier).state =
-        DownloadStatus.downloading;
-    ref.read(downloadedSizeProvider.notifier).state = 0.0;
-    ref.read(totalSizeProvider.notifier).state = 0.0;
+    try {
+      // Validate input file
+      final File audioFile = File(filePath);
+      if (!audioFile.existsSync()) {
+        state = AsyncError(
+          StateError("Audio file not found: $filePath"),
+          StackTrace.current,
+        );
+        return;
+      }
 
-    // Handle model download manually to track progress
-    await _ensureModelDownloaded(model);
+      // Check file size
+      final int fileSize = await audioFile.length();
+      if (fileSize == 0) {
+        state = AsyncError(
+          StateError("Audio file is empty"),
+          StackTrace.current,
+        );
+        return;
+      }
 
-    /// URL: https://huggingface.co/ggerganov/whisper.cpp/resolve/main
-    final Whisper whisper = Whisper(
+      // Reset download progress
+      ref.read(downloadProgressProvider.notifier).state = 0.0;
+      ref.read(downloadStatusProvider.notifier).state =
+          DownloadStatus.downloading;
+      ref.read(downloadedSizeProvider.notifier).state = 0.0;
+      ref.read(totalSizeProvider.notifier).state = 0.0;
+
+      // Handle model download manually to track progress
+      await _ensureModelDownloaded(model);
+
+      /// URL: https://huggingface.co/ggerganov/whisper.cpp/resolve/main
+      final Whisper whisper = Whisper(
         model: model,
         downloadHost:
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main");
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main",
+      );
 
-    final DateTime start = DateTime.now();
+      final DateTime start = DateTime.now();
+      final String lang = ref.read(langProvider);
+      final bool translate = ref.read(translateProvider);
+      final bool withSegments = ref.read(withSegmentsProvider);
+      final bool splitWords = ref.read(splitWordsProvider);
 
-    final String lang = ref.read(langProvider);
-
-    final bool translate = ref.read(translateProvider);
-
-    final bool withSegments = ref.read(withSegmentsProvider);
-
-    final bool splitWords = ref.read(splitWordsProvider);
-
-    try {
       if (kDebugMode) {
-        debugPrint("[Whisper]Start");
+        debugPrint("[Whisper]Start transcription");
+        debugPrint("[Whisper]Audio file: $filePath (${fileSize} bytes)");
+        debugPrint("[Whisper]Model: ${model.modelName}");
+        debugPrint("[Whisper]Language: $lang");
+        debugPrint("[Whisper]Translate: $translate");
       }
+
+      // Get Whisper version
       final String? whisperVersion = await whisper.getVersion();
       var cores = 2;
       try {
@@ -133,8 +171,15 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       } catch (_) {
         cores = 8;
       }
+
+      // Conservative processor allocation to prevent crashes
+      final int processorCount = cores.clamp(1, 8);
+      final int threadCount = cores.clamp(1, 8);
+
       if (kDebugMode) {
-        debugPrint("[Whisper]Number of core = ${cores}");
+        debugPrint("[Whisper]Number of cores = $cores");
+        debugPrint("[Whisper]Using processors = $processorCount");
+        debugPrint("[Whisper]Using threads = $threadCount");
         debugPrint("[Whisper]Whisper version = $whisperVersion");
       }
 
@@ -142,42 +187,107 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       ref.read(downloadStatusProvider.notifier).state =
           DownloadStatus.completed;
 
+      // Convert audio to WAV format with error handling
       final Directory documentDirectory =
           await getApplicationDocumentsDirectory();
       final WhisperAudioconvert converter = WhisperAudioconvert(
-        audioInput: File(filePath),
+        audioInput: audioFile,
         audioOutput: File("${documentDirectory.path}/convert.wav"),
       );
 
-      final File? convertedFile = await converter.convert();
-      final WhisperTranscribeResponse transcription = await whisper.transcribe(
-        transcribeRequest: TranscribeRequest(
-          audio: convertedFile?.path ?? filePath,
-          language: lang,
-          nProcessors: (cores * 1.2).toInt(),
-          threads: (cores * 1.2).toInt(),
-          isTranslate: translate,
-          isNoTimestamps: !withSegments,
-          splitOnWord: splitWords,
-        ),
+      File? convertedFile;
+      try {
+        convertedFile = await converter.convert();
+        if (convertedFile != null && !convertedFile.existsSync()) {
+          throw Exception("Audio conversion failed - output file not found");
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint("[Whisper]Audio conversion failed: $e");
+        }
+        // Fall back to original file if conversion fails
+        convertedFile = null;
+      }
+
+      // Prepare transcription request with safety parameters
+      final String audioFilePath = convertedFile?.path ?? filePath;
+      final TranscribeRequest request = TranscribeRequest(
+        audio: audioFilePath,
+        language: lang,
+        nProcessors: processorCount,
+        threads: threadCount,
+        isTranslate: translate,
+        isNoTimestamps: !withSegments,
+        splitOnWord: splitWords,
       );
+
+      if (kDebugMode) {
+        debugPrint("[Whisper]Starting transcription request");
+        debugPrint("[Whisper]Audio path: $audioFilePath");
+      }
+
+      // Add timeout to prevent hanging
+      final WhisperTranscribeResponse transcription = await whisper
+          .transcribe(transcribeRequest: request)
+          .timeout(
+            const Duration(minutes: 10),
+            onTimeout: () {
+              throw Exception(
+                "Transcription timed out after 10 minutes",
+              );
+            },
+          );
 
       final Duration transcriptionDuration = DateTime.now().difference(start);
       if (kDebugMode) {
-        debugPrint("[Whisper]End = $transcriptionDuration");
+        debugPrint("[Whisper]Transcription completed in $transcriptionDuration");
+        debugPrint("[Whisper]Transcription result length: ${transcription.text.length}");
       }
+
       state = AsyncData(
         TranscribeResult(
           time: transcriptionDuration,
           transcription: transcription,
         ),
       );
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint("[Whisper]Error = $e");
+
+      // Cleanup converted file
+      try {
+        if (convertedFile != null && convertedFile.path != filePath) {
+          await convertedFile.delete();
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint("[Whisper]Failed to cleanup converted file: $e");
+        }
       }
+
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint("[Whisper]Transcription failed: $e");
+        debugPrint("[Whisper]Stack trace: $stackTrace");
+      }
+
       ref.read(downloadStatusProvider.notifier).state = DownloadStatus.error;
-      state = const AsyncData(null);
+
+      // Provide user-friendly error messages
+      String errorMessage = "Transcription failed";
+      if (e.toString().contains("TimeoutException") || e.toString().contains("timed out")) {
+        errorMessage = "Transcription timed out. Please try with a shorter audio file.";
+      } else if (e.toString().contains("SIGSEGV") || e.toString().contains("native")) {
+        errorMessage = "A system error occurred during transcription. Please try again.";
+      } else if (e.toString().contains("Model") || e.toString().contains("model")) {
+        errorMessage = "Model loading failed. Please download the model again.";
+      } else if (e.toString().contains("Audio") || e.toString().contains("audio")) {
+        errorMessage = "Audio processing failed. Please try with a different audio file.";
+      } else {
+        errorMessage = "Transcription failed: ${e.toString()}";
+      }
+
+      state = AsyncError(
+        Exception(errorMessage),
+        stackTrace,
+      );
     }
   }
 }

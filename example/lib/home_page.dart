@@ -77,6 +77,9 @@ class MyHomePage extends ConsumerWidget {
                       }
                       return const SizedBox.shrink();
                     },
+                    error: (error, stackTrace) {
+                      return _buildErrorCard(context, error);
+                    },
                     orElse: () => const SizedBox.shrink(),
                   );
                 },
@@ -401,7 +404,7 @@ class MyHomePage extends ConsumerWidget {
                               HapticFeedback.lightImpact();
                               try {
                                 final String audioPath =
-                                    await AudioManager.downloadAudioFile(fileName);
+                                    await AudioManager.prepareAudioFile(fileName);
                                 ref
                                     .read(selectedAudioFileProvider.notifier)
                                     .state = audioPath;
@@ -409,7 +412,7 @@ class MyHomePage extends ConsumerWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text("Failed to download audio file: $fileName"),
+                                      content: Text("Failed to prepare audio file: $fileName"),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -904,5 +907,165 @@ class MyHomePage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildErrorCard(BuildContext context, Object error) {
+    String errorMessage = error.toString();
+    String title = "Transcription Error";
+    IconData icon = Icons.error_outline;
+    Color accentColor = Colors.red;
+
+    // Customize error display based on error type
+    if (errorMessage.contains("timed out")) {
+      title = "Transcription Timed Out";
+      icon = Icons.timer_off;
+      accentColor = Colors.orange;
+    } else if (errorMessage.contains("No audio file selected")) {
+      title = "No Audio File";
+      icon = Icons.audiotrack;
+      accentColor = Colors.amber;
+    } else if (errorMessage.contains("No model selected")) {
+      title = "No Model Selected";
+      icon = Icons.model_training_outlined;
+      accentColor = Colors.amber;
+    } else if (errorMessage.contains("system error") || errorMessage.contains("SIGSEGV")) {
+      title = "System Error";
+      icon = Icons.warning_amber;
+      accentColor = Colors.red;
+    } else if (errorMessage.contains("Model") || errorMessage.contains("model")) {
+      title = "Model Error";
+      icon = Icons.model_training_outlined;
+      accentColor = Colors.deepOrange;
+    } else if (errorMessage.contains("Audio") || errorMessage.contains("audio")) {
+      title = "Audio Error";
+      icon = Icons.audiotrack;
+      accentColor = Colors.purple;
+    }
+
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 600),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.9 + (0.1 * value),
+          child: FadeTransition(
+            opacity: AlwaysStoppedAnimation(value),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: accentColor.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 800),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, iconValue, child) {
+                          return Transform.rotate(
+                            angle: (1.0 - iconValue) * 0.3,
+                            child: Icon(
+                              icon,
+                              color: accentColor,
+                              size: 24,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      errorMessage,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            height: 1.4,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: accentColor.withValues(alpha: 0.7),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getErrorMessageHint(errorMessage),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: accentColor.withValues(alpha: 0.8),
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getErrorMessageHint(String errorMessage) {
+    if (errorMessage.contains("timed out")) {
+      return "Try using a shorter audio file or a smaller model.";
+    } else if (errorMessage.contains("No audio file")) {
+      return "Please select or record an audio file first.";
+    } else if (errorMessage.contains("No model")) {
+      return "Please select a Whisper model from the configuration.";
+    } else if (errorMessage.contains("system error") || errorMessage.contains("SIGSEGV")) {
+      return "Try restarting the app or using a different audio file.";
+    } else if (errorMessage.contains("Model") || errorMessage.contains("model")) {
+      return "Try downloading the model again or selecting a different model.";
+    } else if (errorMessage.contains("Audio") || errorMessage.contains("audio")) {
+      return "Try using a different audio format or file.";
+    } else {
+      return "Check your audio file and try again.";
+    }
   }
 }
