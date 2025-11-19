@@ -70,7 +70,8 @@ class MyHomePage extends ConsumerWidget {
                   );
 
                   final bool isTranscribing = transcriptionAsync.isLoading;
-                  final bool isProcessing = ref.watch(isTranscriptionProcessingProvider);
+                  final bool isProcessing =
+                      ref.watch(isTranscriptionProcessingProvider);
 
                   return Column(
                     children: [

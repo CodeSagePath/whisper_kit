@@ -25,7 +25,8 @@ final selectedAudioFileProvider =
 
 final isConfigExpandedProvider = StateProvider.autoDispose((ref) => false);
 
-final isTranscriptionProcessingProvider = StateProvider.autoDispose((ref) => false);
+final isTranscriptionProcessingProvider =
+    StateProvider.autoDispose((ref) => false);
 
 enum DownloadStatus {
   idle,

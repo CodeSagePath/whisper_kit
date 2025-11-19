@@ -1,3 +1,5 @@
+library;
+
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -6,15 +8,15 @@ import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:whisper_flutter/bean/_models.dart';
-import 'package:whisper_flutter/bean/whisper_dto.dart';
-import 'package:whisper_flutter/download_model.dart';
-import 'package:whisper_flutter/whisper_bindings_generated.dart';
+import 'package:whisper_kit/bean/_models.dart';
+import 'package:whisper_kit/bean/whisper_dto.dart';
+import 'package:whisper_kit/download_model.dart';
+import 'package:whisper_kit/whisper_bindings_generated.dart';
 
-export 'package:whisper_flutter/bean/_models.dart';
-export 'package:whisper_flutter/download_model.dart' show WhisperModel;
+export 'package:whisper_kit/bean/_models.dart';
+export 'package:whisper_kit/download_model.dart' show WhisperModel;
 
-/// Entry point of whisper_flutter
+/// Entry point of whisper_kit
 class Whisper {
   /// [model] is required
   /// [modelDir] is path where downloaded model will be stored.

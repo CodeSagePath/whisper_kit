@@ -1,4 +1,4 @@
-name: whisper_flutter
+name: whisper_kit
 description: A flutter library for offline speech-to-text conversion which use whisper.cpp models implementation for Android.
 version: 0.0.1
 homepage: https://github.com/CodeSagePath/whisper_flutter

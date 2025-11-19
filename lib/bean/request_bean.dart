@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:whisper_flutter/bean/whisper_dto.dart';
+import 'package:whisper_kit/bean/whisper_dto.dart';
 
 part 'request_bean.freezed.dart';
 part 'request_bean.g.dart';
