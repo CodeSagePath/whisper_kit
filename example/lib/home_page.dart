@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:test_whisper/animated_transcribe_button.dart";
 import "package:test_whisper/audio_manager.dart";
 import "package:test_whisper/download_progress_widget.dart";
 import "package:test_whisper/providers.dart";
 import "package:test_whisper/record_page.dart";
+import "package:test_whisper/transcription_status_widget.dart";
 import "package:test_whisper/whisper_controller.dart";
 import "package:test_whisper/whisper_result.dart";
 import "package:whisper_flutter/whisper_flutter.dart";
@@ -67,20 +69,37 @@ class MyHomePage extends ConsumerWidget {
                     whisperControllerProvider,
                   );
 
-                  return transcriptionAsync.maybeWhen(
-                    skipLoadingOnRefresh: true,
-                    skipLoadingOnReload: true,
-                    data: (TranscribeResult? transcriptionResult) {
-                      if (transcriptionResult != null) {
-                        return _buildTranscriptionResultCard(
-                            context, transcriptionResult);
-                      }
-                      return const SizedBox.shrink();
-                    },
-                    error: (error, stackTrace) {
-                      return _buildErrorCard(context, error);
-                    },
-                    orElse: () => const SizedBox.shrink(),
+                  final bool isTranscribing = transcriptionAsync.isLoading;
+
+                  return Column(
+                    children: [
+                      // Transcription status widget with timer
+                      TranscriptionStatusWidget(
+                        isActive: isTranscribing,
+                        duration: isTranscribing
+                            ? Duration.zero // Will be updated by a timer
+                            : Duration.zero,
+                      ),
+
+                      // Transcription result or error
+                      if (!isTranscribing) ...[
+                        transcriptionAsync.maybeWhen(
+                          skipLoadingOnRefresh: true,
+                          skipLoadingOnReload: true,
+                          data: (TranscribeResult? transcriptionResult) {
+                            if (transcriptionResult != null) {
+                              return _buildTranscriptionResultCard(
+                                  context, transcriptionResult);
+                            }
+                            return const SizedBox.shrink();
+                          },
+                          error: (error, stackTrace) {
+                            return _buildErrorCard(context, error);
+                          },
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -587,29 +606,16 @@ class MyHomePage extends ConsumerWidget {
                     builder: (context, value, child) {
                       return Transform.translate(
                         offset: Offset(0, (1 - value) * 20),
-                        child: ElevatedButton.icon(
+                        child: AnimatedTranscribeButton(
                           onPressed: () async {
                             HapticFeedback.heavyImpact();
                             await controller.transcribe(selectedAudioFile);
                           },
-                          icon: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            child: const Icon(
-                              Icons.play_arrow,
-                              key: ValueKey("play"),
-                            ),
-                          ),
-                          label: const Text("Transcribe"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 5,
-                            shadowColor: Colors.green.withValues(alpha: 0.3),
-                          ),
+                          isLoading: ref
+                              .watch(whisperControllerProvider)
+                              .isLoading,
+                          text: "Transcribe",
+                          icon: Icons.play_arrow,
                         ),
                       );
                     },
@@ -787,7 +793,7 @@ class MyHomePage extends ConsumerWidget {
               border: Border.all(color: Colors.grey.shade600),
             ),
             child: Text(
-              result.transcription.text,
+              result.transcription.text.trim(),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.white,
                     height: 1.5,
