@@ -9,7 +9,7 @@ import "package:test_whisper/record_page.dart";
 import "package:test_whisper/transcription_status_widget.dart";
 import "package:test_whisper/whisper_controller.dart";
 import "package:test_whisper/whisper_result.dart";
-import "package:whisper_flutter/whisper_flutter.dart";
+import "package:whisper_kit/whisper_kit.dart";
 
 /// Utility function to format duration in a user-friendly way
 String _formatDuration(Duration duration) {
@@ -70,13 +70,14 @@ class MyHomePage extends ConsumerWidget {
                   );
 
                   final bool isTranscribing = transcriptionAsync.isLoading;
+                  final bool isProcessing = ref.watch(isTranscriptionProcessingProvider);
 
                   return Column(
                     children: [
                       // Transcription status widget with timer
                       TranscriptionStatusWidget(
-                        isActive: isTranscribing,
-                        duration: isTranscribing
+                        isActive: isProcessing,
+                        duration: isProcessing
                             ? Duration.zero // Will be updated by a timer
                             : Duration.zero,
                       ),

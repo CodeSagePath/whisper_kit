@@ -45,7 +45,7 @@ dependencies:
 
   ffmpeg_kit_flutter_new: ^4.1.0
 
-  whisper_flutter:
+  whisper_kit:
     path: ../
 
 dev_dependencies:
