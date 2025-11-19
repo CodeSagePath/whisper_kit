@@ -194,7 +194,7 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
                           animation: _dotsAnimation,
                           builder: (context, child) {
                             return Text(
-                              "Transcribing$_getDots()",
+                              "Transcribing ${_getDots()}",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,

@@ -1,4 +1,4 @@
-import "package:whisper_flutter/whisper_flutter.dart";
+import "package:whisper_kit/whisper_kit.dart";
 
 class TranscribeResult {
   const TranscribeResult({

@@ -1,5 +1,5 @@
 import "package:flutter_riverpod/legacy.dart";
-import "package:whisper_flutter/whisper_flutter.dart";
+import "package:whisper_kit/whisper_kit.dart";
 
 final modelProvider = StateProvider.autoDispose((ref) => WhisperModel.base);
 
@@ -24,6 +24,8 @@ final selectedAudioFileProvider =
     StateProvider.autoDispose<String?>((ref) => null);
 
 final isConfigExpandedProvider = StateProvider.autoDispose((ref) => false);
+
+final isTranscriptionProcessingProvider = StateProvider.autoDispose((ref) => false);
 
 enum DownloadStatus {
   idle,

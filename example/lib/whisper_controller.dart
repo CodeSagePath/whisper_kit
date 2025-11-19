@@ -8,7 +8,7 @@ import "package:system_info2/system_info2.dart";
 import "package:test_whisper/providers.dart";
 import "package:test_whisper/whisper_audio_convert.dart";
 import "package:test_whisper/whisper_result.dart";
-import "package:whisper_flutter/whisper_flutter.dart";
+import "package:whisper_kit/whisper_kit.dart";
 
 class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
   WhisperController(this.ref) : super(const AsyncData(null));
@@ -187,6 +187,9 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       ref.read(downloadStatusProvider.notifier).state =
           DownloadStatus.completed;
 
+      // Start transcription processing timer
+      ref.read(isTranscriptionProcessingProvider.notifier).state = true;
+
       // Ensure audio is in proper WAV format (16kHz, mono, 16-bit PCM) with error handling
       final Directory documentDirectory =
           await getApplicationDocumentsDirectory();
@@ -245,6 +248,9 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
             "[Whisper]Transcription result length: ${transcription.text.length}");
       }
 
+      // Stop transcription processing timer
+      ref.read(isTranscriptionProcessingProvider.notifier).state = false;
+
       state = AsyncData(
         TranscribeResult(
           time: transcriptionDuration,
@@ -269,6 +275,9 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       }
 
       ref.read(downloadStatusProvider.notifier).state = DownloadStatus.error;
+
+      // Stop transcription processing timer in case of error
+      ref.read(isTranscriptionProcessingProvider.notifier).state = false;
 
       // Provide user-friendly error messages
       String errorMessage = "Transcription failed";

@@ -5,7 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:path_provider/path_provider.dart";
 import "package:test_whisper/providers.dart";
-import "package:whisper_flutter/whisper_flutter.dart";
+import "package:whisper_kit/whisper_kit.dart";
 
 class DownloadProgressWidget extends ConsumerStatefulWidget {
   const DownloadProgressWidget({super.key});
