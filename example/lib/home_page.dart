@@ -1,15 +1,29 @@
-import "dart:io";
-
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:path_provider/path_provider.dart";
+import "package:test_whisper/audio_manager.dart";
 import "package:test_whisper/download_progress_widget.dart";
 import "package:test_whisper/providers.dart";
 import "package:test_whisper/record_page.dart";
 import "package:test_whisper/whisper_controller.dart";
 import "package:test_whisper/whisper_result.dart";
 import "package:whisper_flutter/whisper_flutter.dart";
+
+/// Utility function to format duration in a user-friendly way
+String _formatDuration(Duration duration) {
+  if (duration.inSeconds < 60) {
+    return "${duration.inSeconds}.${(duration.inMilliseconds % 1000 ~/ 100).toString().padLeft(1, '0')}s";
+  } else if (duration.inMinutes < 60) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return "${minutes}m ${seconds}s";
+  } else {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+    return "${hours}h ${minutes}m ${seconds}s";
+  }
+}
 
 class MyHomePage extends ConsumerWidget {
   const MyHomePage({
@@ -359,16 +373,11 @@ class MyHomePage extends ConsumerWidget {
               mainAxisSpacing: 12,
               childAspectRatio: 3.0,
             ),
-            itemCount: 6,
+            itemCount: AudioManager.availableFiles.length,
             itemBuilder: (context, index) {
-              final fileName = [
-                "punjabi.wav",
-                "marathi.wav",
-                "english.wav",
-                "telugu.wav",
-                "french.wav",
-                "japanese.wav",
-              ][index];
+              final audioFile = AudioManager.availableFiles[index];
+              final fileName = audioFile["name"]!;
+              final fileSize = audioFile["size"]!;
 
               final isSelected = selectedAudioFile?.split("/").last == fileName;
 
@@ -390,17 +399,22 @@ class MyHomePage extends ConsumerWidget {
                           child: InkWell(
                             onTap: () async {
                               HapticFeedback.lightImpact();
-                              final Directory documentDirectory =
-                                  await getApplicationDocumentsDirectory();
-                              final ByteData documentBytes =
-                                  await rootBundle.load("assets/$fileName");
-                              final String audioPath =
-                                  "${documentDirectory.path}/$fileName";
-                              await File(audioPath).writeAsBytes(
-                                  documentBytes.buffer.asUint8List());
-                              ref
-                                  .read(selectedAudioFileProvider.notifier)
-                                  .state = audioPath;
+                              try {
+                                final String audioPath =
+                                    await AudioManager.downloadAudioFile(fileName);
+                                ref
+                                    .read(selectedAudioFileProvider.notifier)
+                                    .state = audioPath;
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Failed to download audio file: $fileName"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                             },
                             borderRadius: BorderRadius.circular(12),
                             splashFactory: InkRipple.splashFactory,
@@ -449,20 +463,39 @@ class MyHomePage extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      fileName,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? const Color(0xFFE94560)
-                                            : Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          fileName,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? const Color(0xFFE94560)
+                                                : Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          fileSize,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? const Color(0xFFE94560).withValues(alpha: 0.7)
+                                                : Colors.grey.shade500,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   if (isSelected) ...[
@@ -759,19 +792,62 @@ class MyHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade800,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              "Processing Time: ${result.time.toString()}",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade300,
+          TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 800),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: 0.95 + (0.05 * value),
+                  child: FadeTransition(
+                    opacity: AlwaysStoppedAnimation(value),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F3460).withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFFE94560).withValues(alpha: 0.3 + (0.2 * value)),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFE94560).withValues(alpha: 0.1 * value),
+                            blurRadius: 4 * value,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          TweenAnimationBuilder<double>(
+                            duration: const Duration(milliseconds: 1000),
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            builder: (context, iconValue, child) {
+                              return Transform.rotate(
+                                angle: (1.0 - iconValue) * 0.2,
+                                child: Icon(
+                                  Icons.timer_outlined,
+                                  color: const Color(0xFFE94560).withValues(alpha: 0.8),
+                                  size: 18,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Processing Time: ${_formatDuration(result.time)}",
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFFE94560).withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                );
+              },
             ),
-          ),
           if (result.transcription.segments != null) ...[
             const SizedBox(height: 20),
             Text(
