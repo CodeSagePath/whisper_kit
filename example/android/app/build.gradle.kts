@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.whisper"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "28.0.13004108"
 
     compileOptions {
@@ -21,17 +21,32 @@ android {
     defaultConfig {
         applicationId = "com.example.whisper"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         ndk {
-            abiFilters("arm64-v8a", "armeabi-v7a", "x86_64")
+            abiFilters += setOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // 16KB Android compatibility for newer devices
+    buildFeatures {
+        buildConfig = true
+        prefab = true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
         }
     }
 }
