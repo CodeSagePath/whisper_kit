@@ -127,7 +127,8 @@ class _AnimatedTranscribeButtonState extends State<AnimatedTranscribeButton>
       animation: Listenable.merge([_scaleAnimation, _pulseAnimation]),
       builder: (context, child) {
         return Transform.scale(
-          scale: _scaleAnimation.value * (widget.isLoading ? _pulseAnimation.value : 1.0),
+          scale: _scaleAnimation.value *
+              (widget.isLoading ? _pulseAnimation.value : 1.0),
           child: GestureDetector(
             onTapDown: _handleTapDown,
             onTapUp: _handleTapUp,

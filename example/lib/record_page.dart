@@ -298,7 +298,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () async {
-                            final String? outputPath = await controller.stopRecord();
+                            final String? outputPath =
+                                await controller.stopRecord();
 
                             if (outputPath != null && mounted) {
                               if (kDebugMode) {
@@ -374,7 +375,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                         children: [
                           Icon(
                             Icons.info_outline,
-                            color: const Color(0xFFE94560).withValues(alpha: 0.7),
+                            color:
+                                const Color(0xFFE94560).withValues(alpha: 0.7),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -382,7 +384,8 @@ class _RecordPageState extends ConsumerState<RecordPage> {
                             child: Text(
                               "Recording Tips",
                               style: TextStyle(
-                                color: const Color(0xFFE94560).withValues(alpha: 0.9),
+                                color: const Color(0xFFE94560)
+                                    .withValues(alpha: 0.9),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),
