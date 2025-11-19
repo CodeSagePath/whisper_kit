@@ -15,10 +15,96 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
 
   final Ref ref;
 
+  Future<void> _ensureModelDownloaded(WhisperModel model) async {
+    if (model == WhisperModel.none) return;
+
+    // Use the same path logic as Whisper library to ensure consistency
+    final Directory modelDirectory = Platform.isAndroid
+        ? await getApplicationSupportDirectory()
+        : await getLibraryDirectory();
+    final String modelDir = modelDirectory.path;
+    final File modelFile = File(model.getPath(modelDir));
+
+    if (modelFile.existsSync()) {
+      if (kDebugMode) {
+        debugPrint(
+            "Model already exists: ${model.modelName} at ${modelFile.path}");
+      }
+      // Mark as completed
+      ref.read(downloadStatusProvider.notifier).state =
+          DownloadStatus.completed;
+      return;
+    }
+
+    // Download the model manually with progress tracking
+    final downloadHost =
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
+
+    if (kDebugMode) {
+      debugPrint("Downloading model ${model.modelName} to $modelDir");
+    }
+
+    final httpClient = HttpClient();
+    try {
+      final modelUri = Uri.parse("$downloadHost/ggml-${model.modelName}.bin");
+      final request = await httpClient.getUrl(modelUri);
+      final response = await request.close();
+
+      final contentLength = response.contentLength;
+      if (contentLength > 0) {
+        ref.read(totalSizeProvider.notifier).state = contentLength.toDouble();
+      }
+
+      final raf = modelFile.openSync(mode: FileMode.write);
+      int receivedBytes = 0;
+
+      await for (var chunk in response) {
+        raf.writeFromSync(chunk);
+        receivedBytes += chunk.length;
+
+        // Update progress
+        if (contentLength > 0) {
+          final progress = receivedBytes / contentLength;
+          ref.read(downloadProgressProvider.notifier).state = progress;
+          ref.read(downloadedSizeProvider.notifier).state =
+              receivedBytes.toDouble();
+        }
+      }
+
+      await raf.close();
+
+      if (kDebugMode) {
+        debugPrint("Model download completed: ${modelFile.path}");
+      }
+
+      // Mark as completed
+      ref.read(downloadStatusProvider.notifier).state =
+          DownloadStatus.completed;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("Model download failed: $e");
+      }
+      ref.read(downloadStatusProvider.notifier).state = DownloadStatus.error;
+      rethrow;
+    } finally {
+      httpClient.close();
+    }
+  }
+
   Future<void> transcribe(String filePath) async {
     final WhisperModel model = ref.read(modelProvider);
 
     state = const AsyncLoading();
+
+    // Reset download progress
+    ref.read(downloadProgressProvider.notifier).state = 0.0;
+    ref.read(downloadStatusProvider.notifier).state =
+        DownloadStatus.downloading;
+    ref.read(downloadedSizeProvider.notifier).state = 0.0;
+    ref.read(totalSizeProvider.notifier).state = 0.0;
+
+    // Handle model download manually to track progress
+    await _ensureModelDownloaded(model);
 
     /// URL: https://huggingface.co/ggerganov/whisper.cpp/resolve/main
     final Whisper whisper = Whisper(
@@ -51,6 +137,11 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
         debugPrint("[Whisper]Number of core = ${cores}");
         debugPrint("[Whisper]Whisper version = $whisperVersion");
       }
+
+      // Mark download as completed
+      ref.read(downloadStatusProvider.notifier).state =
+          DownloadStatus.completed;
+
       final Directory documentDirectory =
           await getApplicationDocumentsDirectory();
       final WhisperAudioconvert converter = WhisperAudioconvert(
@@ -85,6 +176,7 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       if (kDebugMode) {
         debugPrint("[Whisper]Error = $e");
       }
+      ref.read(downloadStatusProvider.notifier).state = DownloadStatus.error;
       state = const AsyncData(null);
     }
   }
