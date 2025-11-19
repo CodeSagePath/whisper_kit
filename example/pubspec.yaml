@@ -42,7 +42,6 @@ dependencies:
   system_info2: ^4.0.0
   record: ^6.0.0
   cupertino_icons: ^1.0.8
-  http: ^1.2.0
 
   ffmpeg_kit_flutter_new: ^4.1.0
 
@@ -56,6 +55,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Audio files are loaded from network/http during runtime to reduce bundle size
-  # assets:
-  #   - assets/
+  assets:
+    - assets/

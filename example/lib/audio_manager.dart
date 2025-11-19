@@ -2,12 +2,10 @@ import "dart:async";
 import "dart:io";
 
 import "package:flutter/foundation.dart";
-import "package:http/http.dart" as http;
+import "package:flutter/services.dart";
 import "package:path_provider/path_provider.dart";
 
 class AudioManager {
-  static const String _audioHost = "https://github.com/thewh1teagle/whisper_flutter/raw/master/example/assets";
-
   static const List<Map<String, String>> _audioFiles = [
     {"name": "punjabi.wav", "size": "565KB"},
     {"name": "marathi.wav", "size": "436KB"},
@@ -19,7 +17,7 @@ class AudioManager {
 
   static List<Map<String, String>> get availableFiles => _audioFiles;
 
-  static Future<String> downloadAudioFile(String fileName) async {
+  static Future<String> prepareAudioFile(String fileName) async {
     try {
       final Directory documentDirectory = await getApplicationDocumentsDirectory();
       final File audioFile = File("${documentDirectory.path}/$fileName");
@@ -32,36 +30,30 @@ class AudioManager {
       }
 
       if (kDebugMode) {
-        debugPrint("Downloading audio file: $fileName");
+        debugPrint("Preparing audio file from assets: $fileName");
       }
 
-      final response = await http.get(
-        Uri.parse("$_audioHost/$fileName"),
-      ).timeout(const Duration(minutes: 2));
+      // Load from bundled assets and copy to documents directory
+      final ByteData assetBytes = await rootBundle.load("assets/$fileName");
+      await audioFile.writeAsBytes(assetBytes.buffer.asUint8List());
 
-      if (response.statusCode == 200) {
-        await audioFile.writeAsBytes(response.bodyBytes);
-
-        if (kDebugMode) {
-          debugPrint("Audio file downloaded successfully: ${audioFile.path}");
-        }
-
-        return audioFile.path;
-      } else {
-        throw Exception("Failed to download audio file: HTTP ${response.statusCode}");
+      if (kDebugMode) {
+        debugPrint("Audio file prepared successfully: ${audioFile.path}");
       }
+
+      return audioFile.path;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint("Error downloading audio file $fileName: $e");
+        debugPrint("Error preparing audio file $fileName: $e");
       }
-      throw Exception("Failed to download audio file: $e");
+      throw Exception("Failed to prepare audio file: $e");
     }
   }
 
   static Future<void> preloadAllAudioFiles() async {
     for (final audioFile in _audioFiles) {
       try {
-        await downloadAudioFile(audioFile["name"]!);
+        await prepareAudioFile(audioFile["name"]!);
       } catch (e) {
         if (kDebugMode) {
           debugPrint("Failed to preload ${audioFile["name"]}: $e");

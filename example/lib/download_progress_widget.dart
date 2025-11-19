@@ -404,7 +404,7 @@ class _DownloadProgressWidgetState extends ConsumerState<DownloadProgressWidget>
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: _getStatusColor(downloadStatus),
                             fontWeight: FontWeight.bold,
-                            fontSize: 18
+                            fontSize: 14
                           ),
                     ),
                   ),
