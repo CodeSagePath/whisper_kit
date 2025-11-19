@@ -227,21 +227,22 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       }
 
       // Add timeout to prevent hanging
-      final WhisperTranscribeResponse transcription = await whisper
-          .transcribe(transcribeRequest: request)
-          .timeout(
-            const Duration(minutes: 10),
-            onTimeout: () {
-              throw Exception(
-                "Transcription timed out after 10 minutes",
-              );
-            },
+      final WhisperTranscribeResponse transcription =
+          await whisper.transcribe(transcribeRequest: request).timeout(
+        const Duration(minutes: 10),
+        onTimeout: () {
+          throw Exception(
+            "Transcription timed out after 10 minutes",
           );
+        },
+      );
 
       final Duration transcriptionDuration = DateTime.now().difference(start);
       if (kDebugMode) {
-        debugPrint("[Whisper]Transcription completed in $transcriptionDuration");
-        debugPrint("[Whisper]Transcription result length: ${transcription.text.length}");
+        debugPrint(
+            "[Whisper]Transcription completed in $transcriptionDuration");
+        debugPrint(
+            "[Whisper]Transcription result length: ${transcription.text.length}");
       }
 
       state = AsyncData(
@@ -261,7 +262,6 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
           debugPrint("[Whisper]Failed to cleanup converted file: $e");
         }
       }
-
     } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint("[Whisper]Transcription failed: $e");
@@ -272,14 +272,21 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
 
       // Provide user-friendly error messages
       String errorMessage = "Transcription failed";
-      if (e.toString().contains("TimeoutException") || e.toString().contains("timed out")) {
-        errorMessage = "Transcription timed out. Please try with a shorter audio file.";
-      } else if (e.toString().contains("SIGSEGV") || e.toString().contains("native")) {
-        errorMessage = "A system error occurred during transcription. Please try again.";
-      } else if (e.toString().contains("Model") || e.toString().contains("model")) {
+      if (e.toString().contains("TimeoutException") ||
+          e.toString().contains("timed out")) {
+        errorMessage =
+            "Transcription timed out. Please try with a shorter audio file.";
+      } else if (e.toString().contains("SIGSEGV") ||
+          e.toString().contains("native")) {
+        errorMessage =
+            "A system error occurred during transcription. Please try again.";
+      } else if (e.toString().contains("Model") ||
+          e.toString().contains("model")) {
         errorMessage = "Model loading failed. Please download the model again.";
-      } else if (e.toString().contains("Audio") || e.toString().contains("audio")) {
-        errorMessage = "Audio processing failed. Please try with a different audio file.";
+      } else if (e.toString().contains("Audio") ||
+          e.toString().contains("audio")) {
+        errorMessage =
+            "Audio processing failed. Please try with a different audio file.";
       } else {
         errorMessage = "Transcription failed: ${e.toString()}";
       }

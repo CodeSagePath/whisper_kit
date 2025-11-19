@@ -423,7 +423,8 @@ class MyHomePage extends ConsumerWidget {
                               HapticFeedback.lightImpact();
                               try {
                                 final String audioPath =
-                                    await AudioManager.prepareAudioFile(fileName);
+                                    await AudioManager.prepareAudioFile(
+                                        fileName);
                                 ref
                                     .read(selectedAudioFileProvider.notifier)
                                     .state = audioPath;
@@ -431,7 +432,8 @@ class MyHomePage extends ConsumerWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text("Failed to prepare audio file: $fileName"),
+                                      content: Text(
+                                          "Failed to prepare audio file: $fileName"),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -486,8 +488,10 @@ class MyHomePage extends ConsumerWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
                                         Text(
                                           fileName,
@@ -509,7 +513,8 @@ class MyHomePage extends ConsumerWidget {
                                           fileSize,
                                           style: TextStyle(
                                             color: isSelected
-                                                ? const Color(0xFFE94560).withValues(alpha: 0.7)
+                                                ? const Color(0xFFE94560)
+                                                    .withValues(alpha: 0.7)
                                                 : Colors.grey.shade500,
                                             fontSize: 8,
                                             fontWeight: FontWeight.normal,
@@ -611,9 +616,8 @@ class MyHomePage extends ConsumerWidget {
                             HapticFeedback.heavyImpact();
                             await controller.transcribe(selectedAudioFile);
                           },
-                          isLoading: ref
-                              .watch(whisperControllerProvider)
-                              .isLoading,
+                          isLoading:
+                              ref.watch(whisperControllerProvider).isLoading,
                           text: "Transcribe",
                           icon: Icons.play_arrow,
                         ),
@@ -802,61 +806,66 @@ class MyHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              tween: Tween(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: 0.95 + (0.05 * value),
-                  child: FadeTransition(
-                    opacity: AlwaysStoppedAnimation(value),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F3460).withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFE94560).withValues(alpha: 0.3 + (0.2 * value)),
-                          width: 1,
+            duration: const Duration(milliseconds: 800),
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: 0.95 + (0.05 * value),
+                child: FadeTransition(
+                  opacity: AlwaysStoppedAnimation(value),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F3460).withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFE94560)
+                            .withValues(alpha: 0.3 + (0.2 * value)),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE94560)
+                              .withValues(alpha: 0.1 * value),
+                          blurRadius: 4 * value,
+                          offset: const Offset(0, 2),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFE94560).withValues(alpha: 0.1 * value),
-                            blurRadius: 4 * value,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          TweenAnimationBuilder<double>(
-                            duration: const Duration(milliseconds: 1000),
-                            tween: Tween(begin: 0.0, end: 1.0),
-                            builder: (context, iconValue, child) {
-                              return Transform.rotate(
-                                angle: (1.0 - iconValue) * 0.2,
-                                child: Icon(
-                                  Icons.timer_outlined,
-                                  color: const Color(0xFFE94560).withValues(alpha: 0.8),
-                                  size: 18,
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Processing Time: ${_formatDuration(result.time)}",
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFFE94560).withValues(alpha: 0.9),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 1000),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          builder: (context, iconValue, child) {
+                            return Transform.rotate(
+                              angle: (1.0 - iconValue) * 0.2,
+                              child: Icon(
+                                Icons.timer_outlined,
+                                color: const Color(0xFFE94560)
+                                    .withValues(alpha: 0.8),
+                                size: 18,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Processing Time: ${_formatDuration(result.time)}",
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFFE94560)
+                                        .withValues(alpha: 0.9),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
           if (result.transcription.segments != null) ...[
             const SizedBox(height: 20),
             Text(
@@ -934,15 +943,18 @@ class MyHomePage extends ConsumerWidget {
       title = "No Model Selected";
       icon = Icons.model_training_outlined;
       accentColor = Colors.amber;
-    } else if (errorMessage.contains("system error") || errorMessage.contains("SIGSEGV")) {
+    } else if (errorMessage.contains("system error") ||
+        errorMessage.contains("SIGSEGV")) {
       title = "System Error";
       icon = Icons.warning_amber;
       accentColor = Colors.red;
-    } else if (errorMessage.contains("Model") || errorMessage.contains("model")) {
+    } else if (errorMessage.contains("Model") ||
+        errorMessage.contains("model")) {
       title = "Model Error";
       icon = Icons.model_training_outlined;
       accentColor = Colors.deepOrange;
-    } else if (errorMessage.contains("Audio") || errorMessage.contains("audio")) {
+    } else if (errorMessage.contains("Audio") ||
+        errorMessage.contains("audio")) {
       title = "Audio Error";
       icon = Icons.audiotrack;
       accentColor = Colors.purple;
@@ -997,13 +1009,11 @@ class MyHomePage extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: accentColor,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: accentColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                       ),
                     ],
@@ -1040,10 +1050,11 @@ class MyHomePage extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           _getErrorMessageHint(errorMessage),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: accentColor.withValues(alpha: 0.8),
-                                fontStyle: FontStyle.italic,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: accentColor.withValues(alpha: 0.8),
+                                    fontStyle: FontStyle.italic,
+                                  ),
                         ),
                       ),
                     ],
@@ -1064,11 +1075,14 @@ class MyHomePage extends ConsumerWidget {
       return "Please select or record an audio file first.";
     } else if (errorMessage.contains("No model")) {
       return "Please select a Whisper model from the configuration.";
-    } else if (errorMessage.contains("system error") || errorMessage.contains("SIGSEGV")) {
+    } else if (errorMessage.contains("system error") ||
+        errorMessage.contains("SIGSEGV")) {
       return "Try restarting the app or using a different audio file.";
-    } else if (errorMessage.contains("Model") || errorMessage.contains("model")) {
+    } else if (errorMessage.contains("Model") ||
+        errorMessage.contains("model")) {
       return "Try downloading the model again or selecting a different model.";
-    } else if (errorMessage.contains("Audio") || errorMessage.contains("audio")) {
+    } else if (errorMessage.contains("Audio") ||
+        errorMessage.contains("audio")) {
       return "Try using a different audio format or file.";
     } else {
       return "Check your audio file and try again.";

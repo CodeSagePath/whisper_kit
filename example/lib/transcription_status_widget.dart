@@ -286,7 +286,8 @@ class WavePainter extends CustomPainter {
       final x = center.dx + radius * 0.8 * math.cos(angle);
       final y = center.dy + radius * 0.8 * math.sin(angle);
 
-      final waveRadius = 3 + i * 2 + math.sin(animationValue * 2 * math.pi + i) * 2;
+      final waveRadius =
+          3 + i * 2 + math.sin(animationValue * 2 * math.pi + i) * 2;
 
       canvas.drawCircle(
         Offset(x, y),

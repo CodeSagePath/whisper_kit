@@ -35,10 +35,12 @@ enum WhisperModel {
 }
 
 /// Download [model] to [destinationPath]
-Future<String> downloadModel(
-    {required WhisperModel model,
-    required String destinationPath,
-    String? downloadHost}) async {
+Future<String> downloadModel({
+  required WhisperModel model,
+  required String destinationPath,
+  String? downloadHost,
+  Function(int received, int total)? onDownloadProgress,
+}) async {
   if (kDebugMode) {
     debugPrint('Download model ${model.modelName}');
   }
@@ -57,23 +59,32 @@ Future<String> downloadModel(
     );
   }
 
-  final request = await httpClient.getUrl(
-    modelUri,
-  );
-
+  final request = await httpClient.getUrl(modelUri);
   final response = await request.close();
+
+  final contentLength = response.contentLength;
+  if (kDebugMode) {
+    debugPrint('Content length: $contentLength bytes');
+  }
 
   final file = File('$destinationPath/ggml-${model.modelName}.bin');
   final raf = file.openSync(mode: FileMode.write);
 
+  int receivedBytes = 0;
   await for (var chunk in response) {
     raf.writeFromSync(chunk);
+    receivedBytes += chunk.length;
+
+    // Call progress callback if provided
+    if (onDownloadProgress != null && contentLength > 0) {
+      onDownloadProgress(receivedBytes, contentLength);
+    }
   }
 
   await raf.close();
 
   if (kDebugMode) {
-    debugPrint('Download Down . Path = ${file.path}');
+    debugPrint('Download Done . Path = ${file.path}');
   }
   return file.path;
 }

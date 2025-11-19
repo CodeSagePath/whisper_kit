@@ -19,7 +19,8 @@ class AudioManager {
 
   static Future<String> prepareAudioFile(String fileName) async {
     try {
-      final Directory documentDirectory = await getApplicationDocumentsDirectory();
+      final Directory documentDirectory =
+          await getApplicationDocumentsDirectory();
       final File audioFile = File("${documentDirectory.path}/$fileName");
 
       if (audioFile.existsSync()) {
