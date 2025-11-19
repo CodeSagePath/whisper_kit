@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:flutter/material.dart";
@@ -26,6 +27,9 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<int> _dotsAnimation;
+
+  Timer? _timer;
+  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
@@ -71,6 +75,7 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
 
     if (widget.isActive) {
       _startAnimations();
+      _startTimer();
     }
   }
 
@@ -81,10 +86,21 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
     if (widget.isActive != oldWidget.isActive) {
       if (widget.isActive) {
         _startAnimations();
+        _startTimer();
       } else {
         _stopAnimations();
+        _stopTimer();
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _slideController.dispose();
+    _fadeController.dispose();
+    _dotsController.dispose();
+    super.dispose();
   }
 
   void _startAnimations() {
@@ -98,6 +114,24 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
     _fadeController.reverse();
     _dotsController.stop();
     _dotsController.reset();
+  }
+
+  void _startTimer() {
+    _elapsedTime = Duration.zero;
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      setState(() {
+        _elapsedTime =
+            Duration(milliseconds: _elapsedTime.inMilliseconds + 100);
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    setState(() {
+      _elapsedTime = Duration.zero;
+    });
   }
 
   String _formatDuration(Duration duration) {
@@ -198,18 +232,13 @@ class _TranscriptionStatusWidgetState extends State<TranscriptionStatusWidget>
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  AnimatedBuilder(
-                    animation: Listenable.merge([]),
-                    builder: (context, child) {
-                      return Text(
-                        _formatDuration(widget.duration),
-                        style: TextStyle(
-                          color: const Color(0xFFE94560).withValues(alpha: 0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      );
-                    },
+                  Text(
+                    _formatDuration(_elapsedTime),
+                    style: TextStyle(
+                      color: const Color(0xFFE94560).withValues(alpha: 0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),

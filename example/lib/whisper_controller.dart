@@ -187,7 +187,7 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       ref.read(downloadStatusProvider.notifier).state =
           DownloadStatus.completed;
 
-      // Convert audio to WAV format with error handling
+      // Ensure audio is in proper WAV format (16kHz, mono, 16-bit PCM) with error handling
       final Directory documentDirectory =
           await getApplicationDocumentsDirectory();
       final WhisperAudioconvert converter = WhisperAudioconvert(

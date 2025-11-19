@@ -7,12 +7,12 @@ import "package:path_provider/path_provider.dart";
 
 class AudioManager {
   static const List<Map<String, String>> _audioFiles = [
-    {"name": "punjabi.wav", "size": "565KB"},
-    {"name": "marathi.wav", "size": "436KB"},
-    {"name": "english.wav", "size": "8.3MB"},
-    {"name": "telugu.wav", "size": "655KB"},
-    {"name": "french.wav", "size": "694KB"},
-    {"name": "japanese.wav", "size": "726KB"},
+    {"name": "punjabi.wav", "size": "45KB"},
+    {"name": "marathi.wav", "size": "35KB"},
+    {"name": "english.wav", "size": "260KB"},
+    {"name": "telugu.wav", "size": "52KB"},
+    {"name": "french.wav", "size": "55KB"},
+    {"name": "japanese.wav", "size": "58KB"},
   ];
 
   static List<Map<String, String>> get availableFiles => _audioFiles;

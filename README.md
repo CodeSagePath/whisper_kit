@@ -60,7 +60,7 @@ A Flutter plugin that brings OpenAI's Whisper ASR (Automatic Speech Recognition)
 
 2. Use the plugin for transcription:
 
-    Here's a basic example of how to transcribe an audio file:
+    Here's a basic example of how to transcribe an audio file. The plugin uses WAV files optimized for Whisper (16kHz, mono, 16-bit PCM):
 
     ```dart
     void main() async {
@@ -87,9 +87,9 @@ A Flutter plugin that brings OpenAI's Whisper ASR (Automatic Speech Recognition)
 <div align="center">
 
 ### Recording Interface
-| Recording Screen | Transcription Progress |
-|:---:|:---:|
-| ![Main Interface](assets/screenshots/1.jpg) | ![Model Download Progress](assets/screenshots/2.jpg) |
+| Recording Screen | Configuration Options | Model Download Progress |
+|:---:|:---:|:---:|
+| ![Main Interface](assets/screenshots/1.jpg) | ![Configuration Options](assets/screenshots/10.jpg) | ![Model Download Progress](assets/screenshots/2.jpg) |
 
 ### Transcription Results
 | Result Display | Model Download |
