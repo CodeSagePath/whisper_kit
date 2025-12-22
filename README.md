@@ -6,16 +6,14 @@ A Flutter plugin that brings OpenAI's Whisper ASR (Automatic Speech Recognition)
 
 ## Features
 
-- **Real-time Microphone Input and Transcription**: Capture audio directly from the microphone and get instant transcriptions with live feedback
-- **Multiple Whisper Models**: Support for various Whisper model sizes (Tiny, Base, Small, Medium) with Tiny model included by default for a lightweight experience
-- **Model Management**: Automatic downloading and management of Whisper models with progress tracking
-- **Android Focused**: Thoroughly tested and confirmed to be working seamlessly only for Android devices
+- **Audio File Transcription**: Transcribe WAV audio files to text using OpenAI's Whisper models
+- **Multiple Whisper Models**: Support for various Whisper model sizes (Tiny, Base, Small, Medium)
+- **Automatic Model Management**: Models are automatically downloaded when needed, with optional progress tracking
+- **Android Focused**: Thoroughly tested and confirmed to be working seamlessly on Android devices
 - **Offline Functionality**: No need for external APIs or cloud services – all processing happens directly on the device
 - **Native Integration**: Efficiently integrates the native `whisper.cpp` library for optimal performance
-- **Real-time Processing Timer**: Built-in elapsed time tracking for transcription processing
-- **Language Support**: Automatic language detection and translation capabilities
-- **Progress Indicators**: Visual feedback for recording, processing, and transcription states
-- **Audio Management**: Built-in audio file handling and playback functionality
+- **Language Support**: Automatic language detection and translation to English
+- **Timestamped Segments**: Get transcription with precise timestamp information for each segment
 
 ---
 
@@ -88,13 +86,30 @@ class TranscriptionExample {
   Future<void> transcribeAudioFile() async {
     final String audioPath = '/path/to/your/audio.wav';
 
+    // Create a Whisper instance with your preferred model
+    final Whisper whisper = Whisper(
+      model: WhisperModel.base,
+      // Optional: custom download host (defaults to HuggingFace)
+      downloadHost: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main',
+    );
+
+    // Create a transcription request
+    final TranscribeRequest request = TranscribeRequest(
+      audio: audioPath,
+      language: 'auto', // 'auto' for detection, or specify: 'en', 'es', 'fr', etc.
+    );
+
     try {
-      final TranscriptionResult? result = await WhisperKit.transcribe(audioPath: audioPath);
-      if (result != null && result.text.isNotEmpty) {
-        print('Transcription: ${result.text}');
-        print('Duration: ${result.duration}ms');
-      } else {
-        print('Transcription failed or returned an empty result.');
+      final WhisperTranscribeResponse result = await whisper.transcribe(
+        transcribeRequest: request,
+      );
+      print('Transcription: ${result.text}');
+      
+      // Access segments if available
+      if (result.segments != null) {
+        for (final segment in result.segments!) {
+          print('[${segment.fromTs} - ${segment.toTs}]: ${segment.text}');
+        }
       }
     } catch (e) {
       print('Error during transcription: $e');
@@ -103,67 +118,60 @@ class TranscriptionExample {
 }
 ```
 
-#### Real-time Microphone Transcription
+#### Transcription with Translation
 
 ```dart
 import 'package:whisper_kit/whisper_kit.dart';
 
-class RealTimeTranscription {
-  late WhisperController _whisperController;
+class TranslationExample {
+  Future<void> transcribeAndTranslate() async {
+    final Whisper whisper = Whisper(model: WhisperModel.small);
 
-  Future<void> initializeWhisper() async {
-    _whisperController = WhisperController();
-    await _whisperController.initialize();
-  }
+    // Enable translation to English
+    final TranscribeRequest request = TranscribeRequest(
+      audio: '/path/to/foreign_language_audio.wav',
+      isTranslate: true, // Translates to English
+      language: 'auto',  // Auto-detect source language
+    );
 
-  Future<void> startRecording() async {
     try {
-      await _whisperController.startRecording();
-      print('Recording started...');
-
-      // Listen for real-time transcription results
-      _whisperController.onResult.listen((TranscriptionResult result) {
-        print('Live transcription: ${result.text}');
-      });
-
+      final WhisperTranscribeResponse result = await whisper.transcribe(
+        transcribeRequest: request,
+      );
+      print('Translated text: ${result.text}');
     } catch (e) {
-      print('Error starting recording: $e');
+      print('Error: $e');
     }
-  }
-
-  Future<void> stopRecording() async {
-    await _whisperController.stopRecording();
-    print('Recording stopped');
   }
 }
 ```
 
-#### Model Management
+#### Model Download with Progress Tracking
 
 ```dart
 import 'package:whisper_kit/whisper_kit.dart';
+import 'package:whisper_kit/download_model.dart';
 
 class ModelManager {
-  Future<void> downloadModel() async {
+  Future<void> downloadModelWithProgress() async {
     try {
-      // Download a specific model with progress tracking
-      await WhisperKit.downloadModel(
-        modelSize: WhisperModel.base,
-        onProgress: (double progress) {
-          print('Download progress: ${(progress * 100).toStringAsFixed(1)}%');
-        }
+      await downloadModel(
+        model: WhisperModel.base,
+        destinationPath: '/path/to/model/directory',
+        onProgress: (int received, int total) {
+          final progress = (received / total * 100).toStringAsFixed(1);
+          print('Download progress: $progress%');
+        },
       );
+      print('Model downloaded successfully!');
     } catch (e) {
       print('Error downloading model: $e');
     }
   }
-
-  Future<void> checkModelStatus() async {
-    final bool isDownloaded = await WhisperKit.isModelDownloaded(WhisperModel.base);
-    print('Model downloaded: $isDownloaded');
-  }
 }
 ```
+
+> **Note:** The `Whisper` class automatically downloads the model if it doesn't exist locally when you call `transcribe()`. Manual download is only needed if you want progress tracking during download.
 
 ### 3. Advanced Configuration
 
@@ -172,29 +180,47 @@ import 'package:whisper_kit/whisper_kit.dart';
 
 class AdvancedTranscription {
   Future<void> transcribeWithCustomSettings() async {
-    final TranscriptionConfig config = TranscriptionConfig(
-      modelSize: WhisperModel.small,
-      language: 'en', // Optional: specify language or leave null for auto-detection
-      translate: false, // Set to true to translate to English
-      enableVad: true, // Voice Activity Detection
-      temperature: 0.0f, // Sampling temperature
+    final Whisper whisper = Whisper(
+      model: WhisperModel.small,
+      // Optional: specify custom model storage directory
+      modelDir: '/custom/path/to/models',
+    );
+
+    final TranscribeRequest request = TranscribeRequest(
+      audio: '/path/to/audio.wav',
+      language: 'en',           // Specify language or 'auto' for detection
+      isTranslate: false,       // Set to true to translate to English
+      isNoTimestamps: false,    // Set to true to skip segment timestamps
+      splitOnWord: true,        // Split segments on word boundaries
+      threads: 4,               // Number of threads to use
+      nProcessors: 2,           // Number of processors to use
+      isVerbose: true,          // Enable verbose output
     );
 
     try {
-      final TranscriptionResult result = await WhisperKit.transcribe(
-        audioPath: '/path/to/audio.wav',
-        config: config,
+      final WhisperTranscribeResponse result = await whisper.transcribe(
+        transcribeRequest: request,
       );
 
       print('Transcription: ${result.text}');
-      print('Language detected: ${result.detectedLanguage}');
-      print('Confidence: ${result.confidence}');
+      
+      // Process segments with timestamps
+      if (result.segments != null) {
+        for (final segment in result.segments!) {
+          print('${segment.fromTs} -> ${segment.toTs}: ${segment.text}');
+        }
+      }
     } catch (e) {
       print('Error: $e');
     }
   }
+
+  Future<void> getWhisperVersion() async {
+    final Whisper whisper = Whisper(model: WhisperModel.none);
+    final String? version = await whisper.getVersion();
+    print('Whisper version: $version');
+  }
 }
-```
 
 ---
 
@@ -233,45 +259,75 @@ class AdvancedTranscription {
 
 ### Core Classes
 
-#### `WhisperKit`
-The main static class for transcription operations:
+#### `Whisper`
+The main class for transcription operations:
 
-- `Future<TranscriptionResult?> transcribe(String audioPath, {TranscriptionConfig? config})` - Transcribe audio file
-- `Future<void> downloadModel(WhisperModel modelSize, {Function(double)? onProgress})` - Download model
-- `Future<bool> isModelDownloaded(WhisperModel modelSize)` - Check model download status
+```dart
+const Whisper({
+  required WhisperModel model,  // Required: the model to use
+  String? modelDir,             // Optional: custom model storage directory
+  String? downloadHost,         // Optional: custom model download URL
+  Function(int, int)? onDownloadProgress,  // Optional: download progress callback
+});
+```
 
-#### `WhisperController`
-Controller for real-time transcription:
+**Methods:**
+- `Future<WhisperTranscribeResponse> transcribe({required TranscribeRequest transcribeRequest})` - Transcribe audio file
+- `Future<String?> getVersion()` - Get the Whisper library version
 
-- `Future<void> initialize()` - Initialize the controller
-- `Future<void> startRecording()` - Start microphone recording
-- `Future<void> stopRecording()` - Stop microphone recording
-- `Stream<TranscriptionResult> get onResult` - Stream of transcription results
+#### `TranscribeRequest`
+Configuration for a transcription request:
 
-#### `TranscriptionResult`
-Contains the transcription result:
+```dart
+factory TranscribeRequest({
+  required String audio,        // Path to audio file (WAV format recommended)
+  bool isTranslate = false,     // Translate to English
+  int threads = 6,              // Number of threads
+  bool isVerbose = false,       // Verbose output
+  String language = 'auto',     // Language code or 'auto' for detection
+  bool isSpecialTokens = false, // Include special tokens
+  bool isNoTimestamps = false,  // Skip timestamp generation
+  int nProcessors = 1,          // Number of processors
+  bool splitOnWord = false,     // Split on word boundaries
+  bool noFallback = false,      // Disable fallback
+  bool diarize = false,         // Enable speaker diarization
+  bool speedUp = false,         // Speed up processing
+});
+```
+
+#### `WhisperTranscribeResponse`
+The transcription result:
 
 - `String text` - The transcribed text
-- `Duration? duration` - Processing duration
-- `String? detectedLanguage` - Detected language code
-- `double? confidence` - Confidence score
+- `List<WhisperTranscribeSegment>? segments` - Timestamped segments (if timestamps enabled)
 
-#### `TranscriptionConfig`
-Configuration for transcription:
+#### `WhisperTranscribeSegment`
+A segment of the transcription with timestamps:
 
-- `WhisperModel modelSize` - Model size (tiny, base, small, medium)
-- `String? language` - Language code or null for auto-detection
-- `bool translate` - Whether to translate to English
-- `bool enableVad` - Enable Voice Activity Detection
-- `double temperature` - Sampling temperature
+- `Duration fromTs` - Start timestamp
+- `Duration toTs` - End timestamp
+- `String text` - The segment text
 
 #### `WhisperModel`
 Enum for available model sizes:
 
-- `WhisperModel.tiny` - Fastest, least accurate (75MB)
-- `WhisperModel.base` - Good balance (142MB)
-- `WhisperModel.small` - Better accuracy (466MB)
-- `WhisperModel.medium` - Best accuracy (1.5GB)
+- `WhisperModel.none` - No model (for version check only)
+- `WhisperModel.tiny` - Fastest, least accurate (~75MB)
+- `WhisperModel.base` - Good balance (~142MB)
+- `WhisperModel.small` - Better accuracy (~466MB)
+- `WhisperModel.medium` - Best accuracy (~1.5GB)
+
+#### `downloadModel` Function
+Standalone function to download models with progress tracking:
+
+```dart
+Future<void> downloadModel({
+  required WhisperModel model,
+  required String destinationPath,
+  String? downloadHost,
+  Function(int received, int total)? onProgress,
+});
+```
 
 ---
 
@@ -294,16 +350,24 @@ Enum for available model sizes:
 Common errors and their solutions:
 
 ```dart
+final Whisper whisper = Whisper(model: WhisperModel.base);
+final TranscribeRequest request = TranscribeRequest(audio: audioPath);
+
 try {
-  final result = await WhisperKit.transcribe(audioPath: audioPath);
-} on WhisperModelNotFoundException {
-  print('Model not found. Please download the required model first.');
-} on AudioFormatException catch (e) {
-  print('Invalid audio format: ${e.message}');
-} on TranscriptionException catch (e) {
-  print('Transcription failed: ${e.message}');
+  final result = await whisper.transcribe(transcribeRequest: request);
+  print('Transcription: ${result.text}');
+} catch (e) {
+  if (e.toString().contains('Model')) {
+    print('Model error. The model may need to be downloaded.');
+  } else if (e.toString().contains('audio') || e.toString().contains('Audio')) {
+    print('Audio format error. Please ensure the audio is in WAV format (16kHz, mono, 16-bit PCM).');
+  } else {
+    print('Transcription failed: $e');
+  }
 }
 ```
+
+> **Tip:** The library throws generic `Exception` objects with descriptive messages. Check the exception message to determine the type of error.
 
 ---
 
