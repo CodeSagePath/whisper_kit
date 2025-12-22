@@ -11,10 +11,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:whisper_kit/bean/_models.dart';
 import 'package:whisper_kit/bean/whisper_dto.dart';
 import 'package:whisper_kit/download_model.dart';
+import 'package:whisper_kit/src/exceptions.dart';
 import 'package:whisper_kit/whisper_bindings_generated.dart';
 
 export 'package:whisper_kit/bean/_models.dart';
 export 'package:whisper_kit/download_model.dart' show WhisperModel;
+export 'package:whisper_kit/src/cancellation.dart';
+export 'package:whisper_kit/src/exceptions.dart';
+export 'package:whisper_kit/src/presets.dart';
+export 'package:whisper_kit/src/progress.dart';
 
 /// Entry point of whisper_kit
 class Whisper {
@@ -120,10 +125,12 @@ class Whisper {
       debugPrint('Transcribe request $result');
     }
     if (result['text'] == null) {
+      final errorMessage =
+          result['message'] as String? ?? 'Unknown transcription error';
       if (kDebugMode) {
-        debugPrint('Transcribe Exception ${result['message']}');
+        debugPrint('Transcribe Exception $errorMessage');
       }
-      throw Exception(result['message']);
+      throw TranscriptionException.processingFailed(errorMessage);
     }
     return WhisperTranscribeResponse.fromJson(result);
   }

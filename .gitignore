@@ -1,20 +1,3 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-*.tmp
-*.bak
-*.old
-*.orig
-*.rej
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
 # IntelliJ / Android Studio
 *.iml
 *.ipr
@@ -77,3 +60,21 @@ filelist.txt
 toplist.txt
 tree-summary.txt
 *.txt
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*.tmp
+*.bak
+*.old
+*.orig
+*.rej
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+TASK_LIST.md
