@@ -43,16 +43,7 @@ macos/build/
 linux/Flutter/ephemeral/
 linux/build/
 
-# Windowsdocs: Add comprehensive documentation for pub.dev
-
-- Add API reference with complete class/method docs
-- Add performance optimization guide  
-- Add GDPR compliance documentation
-- Add getting started guide
-- Add examples documentation
-- Update CHANGELOG with v0.3.0 features
-
-Ready for pub.dev publication!
+# Windows
 windows/Flutter/ephemeral/
 windows/build/
 
@@ -68,7 +59,6 @@ web/favicon.png
 filelist.txt
 toplist.txt
 tree-summary.txt
-*.txt
 
 # Miscellaneous
 *.class
