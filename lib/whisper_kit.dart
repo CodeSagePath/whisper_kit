@@ -16,13 +16,18 @@ import 'package:whisper_kit/whisper_bindings_generated.dart';
 
 export 'package:whisper_kit/bean/_models.dart';
 export 'package:whisper_kit/download_model.dart' show WhisperModel;
+export 'package:whisper_kit/src/adaptive.dart';
 export 'package:whisper_kit/src/batch.dart';
+export 'package:whisper_kit/src/cache.dart';
 export 'package:whisper_kit/src/cancellation.dart';
 export 'package:whisper_kit/src/custom_model.dart';
 export 'package:whisper_kit/src/exceptions.dart';
 export 'package:whisper_kit/src/export.dart';
+export 'package:whisper_kit/src/language.dart';
 export 'package:whisper_kit/src/presets.dart';
 export 'package:whisper_kit/src/progress.dart';
+export 'package:whisper_kit/src/timestamps.dart';
+export 'package:whisper_kit/src/widgets.dart';
 export 'package:whisper_kit/src/whisper_kit_platform.dart';
 
 /// Entry point of whisper_kit
