@@ -24,9 +24,12 @@ export 'package:whisper_kit/src/custom_model.dart';
 export 'package:whisper_kit/src/exceptions.dart';
 export 'package:whisper_kit/src/export.dart';
 export 'package:whisper_kit/src/language.dart';
+export 'package:whisper_kit/src/plugin.dart';
 export 'package:whisper_kit/src/presets.dart';
 export 'package:whisper_kit/src/progress.dart';
+export 'package:whisper_kit/src/security.dart';
 export 'package:whisper_kit/src/timestamps.dart';
+export 'package:whisper_kit/src/translation.dart';
 export 'package:whisper_kit/src/widgets.dart';
 export 'package:whisper_kit/src/whisper_kit_platform.dart';
 
