@@ -1,0 +1,29 @@
+# Files to exclude from pub.dev package
+
+# Build cache directories
+example/android/app/.cxx/
+example/android/.gradle/
+example/ios/.symlinks/
+example/build/
+
+# Platform build outputs
+android/build/
+ios/build/
+linux/build/
+macos/build/
+windows/build/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Development files
+*.log
+.dart_tool/
+
+# Test coverage
+coverage/
+
+# Large native source files are needed for the plugin to work
+# so we keep them: src/, ios/src/
