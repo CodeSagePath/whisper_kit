@@ -16,7 +16,9 @@ import 'package:whisper_kit/whisper_bindings_generated.dart';
 
 export 'package:whisper_kit/bean/_models.dart';
 export 'package:whisper_kit/download_model.dart' show WhisperModel;
+export 'package:whisper_kit/src/ab_testing.dart';
 export 'package:whisper_kit/src/adaptive.dart';
+export 'package:whisper_kit/src/auto_update.dart';
 export 'package:whisper_kit/src/batch.dart';
 export 'package:whisper_kit/src/cache.dart';
 export 'package:whisper_kit/src/cancellation.dart';
@@ -32,6 +34,7 @@ export 'package:whisper_kit/src/presets.dart';
 export 'package:whisper_kit/src/progress.dart';
 export 'package:whisper_kit/src/queue.dart';
 export 'package:whisper_kit/src/security.dart';
+export 'package:whisper_kit/src/telemetry.dart';
 export 'package:whisper_kit/src/timestamps.dart';
 export 'package:whisper_kit/src/translation.dart';
 export 'package:whisper_kit/src/widgets.dart';
