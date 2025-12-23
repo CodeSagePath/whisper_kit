@@ -1,14 +1,16 @@
 name: whisper_kit
-description: A flutter library for offline speech-to-text conversion which use whisper.cpp models implementation for Android.
-version: 0.0.1
-homepage: https://github.com/CodeSagePath/whisper_flutter
-repository: https://github.com/CodeSagePath/whisper_flutter
-issue_tracker: https://github.com/CodeSagePath/whisper_flutter/issues
+description: "On-device speech-to-text for Flutter using OpenAI Whisper. Supports offline transcription, 99 languages, export to SRT/VTT, batch processing, and more."
+version: 0.3.0
+homepage: https://github.com/CodeSagePath/whisper_kit
+repository: https://github.com/CodeSagePath/whisper_kit
+issue_tracker: https://github.com/CodeSagePath/whisper_kit/issues
+documentation: https://github.com/CodeSagePath/whisper_kit/tree/master/doc
 topics:
   - audio
   - speech
   - transcription
   - ai-tools
+  - whisper
 
 platforms:
   android:
