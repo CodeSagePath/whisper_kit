@@ -106,11 +106,11 @@ class Whisper {
       }
       return;
     } else {
-      // Download model without callback to avoid isolate issues
       await downloadModel(
         model: model,
         destinationPath: modelDir,
         downloadHost: downloadHost,
+        onDownloadProgress: onDownloadProgress,
       );
     }
   }
@@ -123,21 +123,32 @@ class Whisper {
     }
     return Isolate.run(
       () async {
+        final bindings = WhisperFlutterBindings(_openLib());
         final Pointer<Utf8> data =
             whisperRequest.toRequestString().toNativeUtf8();
-        final Pointer<Char> res =
-            WhisperFlutterBindings(_openLib()).request(data.cast<Char>());
-        final Map<String, dynamic> result = json.decode(
-          res.cast<Utf8>().toDartString(),
-        ) as Map<String, dynamic>;
+        Pointer<Char> res = nullptr;
         try {
-          malloc.free(data);
-          malloc.free(res);
-        } catch (_) {}
-        if (kDebugMode) {
-          debugPrint('Result =  $result');
+          res = bindings.request(data.cast<Char>());
+          if (res == nullptr) {
+            throw Exception('Native response was null');
+          }
+          final Map<String, dynamic> result = json.decode(
+            res.cast<Utf8>().toDartString(),
+          ) as Map<String, dynamic>;
+          if (kDebugMode) {
+            debugPrint('Result =  $result');
+          }
+          return result;
+        } finally {
+          try {
+            malloc.free(data);
+          } catch (_) {}
+          try {
+            if (res != nullptr) {
+              bindings.whisper_kit_free(res);
+            }
+          } catch (_) {}
         }
-        return result;
       },
     );
   }

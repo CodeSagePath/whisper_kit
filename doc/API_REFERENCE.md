@@ -26,7 +26,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  whisper_kit: ^0.3.0
+  whisper_kit: ^0.3.1
 ```
 
 ### Basic Usage
@@ -36,9 +36,6 @@ import 'package:whisper_kit/whisper_kit.dart';
 
 // Initialize Whisper with a model
 final whisper = Whisper(model: WhisperModel.base);
-
-// Initialize the model (downloads if needed)
-await whisper.initModel();
 
 // Transcribe audio
 final response = await whisper.transcribe(
@@ -50,11 +47,8 @@ print(response.text);
 
 ### Supported Audio Formats
 
-- WAV (recommended)
-- MP3
-- M4A
-- FLAC
-- OGG
+- WAV (required by the native core today): 16kHz, 16-bit PCM, mono or stereo
+- Other formats must be converted to WAV before calling `transcribe()`.
 
 ---
 
@@ -68,20 +62,21 @@ The main entry point for transcription.
 const Whisper({
   required WhisperModel model,
   String? modelDir,
+  String? downloadHost,
   Function(int, int)? onDownloadProgress,
 })
 ```
 
 **Parameters:**
-- `model` - The Whisper model to use (tiny, base, small, medium, large)
+- `model` - The Whisper model to use (`tiny`, `base`, `small`, `medium`, `large-v1`, `large-v2`)
 - `modelDir` - Custom directory for model storage
+- `downloadHost` - Override model download base URL (defaults to HuggingFace)
 - `onDownloadProgress` - Callback for download progress
 
 **Methods:**
 
 | Method | Description |
 |--------|-------------|
-| `initModel()` | Initialize/download the model |
 | `transcribe(TranscribeRequest)` | Transcribe audio file |
 | `getVersion()` | Get whisper.cpp version |
 
@@ -91,10 +86,16 @@ const Whisper({
 TranscribeRequest({
   required String audio,
   bool isTranslate = false,
-  int threads = 4,
+  int threads = 6,
   bool isVerbose = false,
   String language = 'auto',
+  bool isSpecialTokens = false,
   bool isNoTimestamps = false,
+  int nProcessors = 1,
+  bool splitOnWord = false,
+  bool noFallback = false,
+  bool diarize = false,
+  bool speedUp = false,
 })
 ```
 
@@ -102,9 +103,15 @@ TranscribeRequest({
 - `audio` - Path to audio file
 - `isTranslate` - Translate to English
 - `threads` - Number of threads (2-8 recommended)
-- `isVerbose` - Enable verbose logging
+- `isVerbose` - Enable verbose logging (currently not forwarded to native core)
 - `language` - Source language code or 'auto'
+- `isSpecialTokens` - Include special tokens in output (if supported by the native core)
 - `isNoTimestamps` - Disable timestamp generation
+- `nProcessors` - Split audio into chunks and process in parallel (can reduce latency)
+- `splitOnWord` - Enable word-level token timestamps (may increase compute)
+- `noFallback` - Disable fallback strategies (currently not forwarded to native core)
+- `diarize` - Enable speaker-turn detection (tinydiarize)
+- `speedUp` - Enable speed-up mode (quality tradeoff)
 
 ### `WhisperTranscribeResponse` Class
 
@@ -319,8 +326,8 @@ Process multiple files efficiently:
 ```dart
 final transcriber = BatchTranscriber(whisper);
 
-final results = await transcriber.transcribeAll(
-  ['/path/audio1.wav', '/path/audio2.wav'],
+final results = await transcriber.transcribeBatch(
+  audioPaths: ['/path/audio1.wav', '/path/audio2.wav'],
   options: BatchOptions(
     parallel: true,
     maxConcurrency: 2,

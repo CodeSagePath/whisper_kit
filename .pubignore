@@ -1,6 +1,14 @@
 # Files to exclude from pub.dev package
 
 # Build cache directories
+**/.cxx/
+**/.gradle/
+**/local.properties
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
 example/android/app/.cxx/
 example/android/.gradle/
 example/ios/.symlinks/
@@ -24,6 +32,9 @@ windows/build/
 
 # Test coverage
 coverage/
+
+# Local notes
+next-steps.txt
 
 # Large native source files are needed for the plugin to work
 # so we keep them: src/, ios/src/

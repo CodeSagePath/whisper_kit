@@ -11,15 +11,21 @@
 #include <cmath>
 #include <iostream>
 #include <stdio.h>
+#include <cstdlib>
+#include <cstring>
 #include "json/json.hpp"
 
 using json = nlohmann::json;
 
-char *jsonToChar(json jsonData) noexcept
+char *jsonToChar(const json &jsonData) noexcept
 {
     std::string result = jsonData.dump();
-    char *ch = new char[result.size() + 1];
-    strcpy(ch, result.c_str());
+    char *ch = static_cast<char *>(std::malloc(result.size() + 1));
+    if (ch == nullptr)
+    {
+        return nullptr;
+    }
+    std::memcpy(ch, result.c_str(), result.size() + 1);
     return ch;
 }
 
@@ -78,6 +84,7 @@ json transcribe(json jsonBody) noexcept
     whisper_params params;
 
     params.n_threads = jsonBody["threads"];
+    params.n_processors = jsonBody["n_processors"];
     params.verbose = jsonBody["is_verbose"];
     params.translate = jsonBody["is_translate"];
     params.language = jsonBody["language"];
@@ -86,13 +93,28 @@ json transcribe(json jsonBody) noexcept
     params.model = jsonBody["model"];
     params.audio = jsonBody["audio"];
     params.split_on_word = jsonBody["split_on_word"];
+    params.speed_up = jsonBody["speed_up"];
+    params.diarize = jsonBody["diarize"];
     json jsonResult;
     jsonResult["@type"] = "transcribe";
 
-    if (params.language != "" && params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1)
+    if (params.n_threads < 1)
+    {
+        params.n_threads = 1;
+    }
+    if (params.n_processors < 1)
+    {
+        params.n_processors = 1;
+    }
+
+    if (params.language == "" || params.language == "auto")
+    {
+        params.language = "auto";
+    }
+    else if (whisper_lang_id(params.language.c_str()) == -1)
     {
         jsonResult["@type"] = "error";
-        jsonResult["message"] = "error: unknown language = " + params.language;
+        jsonResult["message"] = "Unknown language: " + params.language;
         return jsonResult;
     }
 
@@ -103,6 +125,12 @@ json transcribe(json jsonBody) noexcept
 
     // whisper init
     struct whisper_context *ctx = whisper_init_from_file(params.model.c_str());
+    if (ctx == nullptr)
+    {
+        jsonResult["@type"] = "error";
+        jsonResult["message"] = "Failed to load model: " + params.model;
+        return jsonResult;
+    }
     std::string text_result = "";
     const auto fname_inp = params.audio;
     // WAV input
@@ -112,28 +140,35 @@ json transcribe(json jsonBody) noexcept
         if (!drwav_init_file(&wav, fname_inp.c_str(), NULL))
         {
             jsonResult["@type"] = "error";
-            jsonResult["message"] = " failed to open WAV file ";
+            jsonResult["message"] = "Failed to open WAV file: " + fname_inp;
+            whisper_free(ctx);
             return jsonResult;
         }
 
         if (wav.channels != 1 && wav.channels != 2)
         {
             jsonResult["@type"] = "error";
-            jsonResult["message"] = "must be mono or stereo";
+            jsonResult["message"] = "WAV must be mono or stereo: " + fname_inp;
+            drwav_uninit(&wav);
+            whisper_free(ctx);
             return jsonResult;
         }
 
         if (wav.sampleRate != WHISPER_SAMPLE_RATE)
         {
             jsonResult["@type"] = "error";
-            jsonResult["message"] = "WAV file  must be 16 kHz";
+            jsonResult["message"] = "WAV must be 16 kHz: " + fname_inp;
+            drwav_uninit(&wav);
+            whisper_free(ctx);
             return jsonResult;
         }
 
         if (wav.bitsPerSample != 16)
         {
             jsonResult["@type"] = "error";
-            jsonResult["message"] = "WAV file  must be 16 bit";
+            jsonResult["message"] = "WAV must be 16-bit PCM: " + fname_inp;
+            drwav_uninit(&wav);
+            whisper_free(ctx);
             return jsonResult;
         }
 
@@ -162,13 +197,6 @@ json transcribe(json jsonBody) noexcept
         }
     }
 
-    {
-        if (params.language == "" && params.language == "auto")
-        {
-            params.language = "auto";
-            params.translate = false;
-        }
-    }
     // run the inference
     {
         whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
@@ -176,21 +204,29 @@ json transcribe(json jsonBody) noexcept
         wparams.print_realtime = false;
         wparams.print_progress = false;
         wparams.print_timestamps = !params.no_timestamps;
-        // wparams.print_special_tokens = params.print_special_tokens;
+        wparams.print_special = params.print_special_tokens;
         wparams.translate = params.translate;
         wparams.language = params.language.c_str();
+        wparams.detect_language = params.language == "auto";
         wparams.n_threads = params.n_threads;
         wparams.split_on_word = params.split_on_word;
+        wparams.speed_up = params.speed_up;
+        wparams.tdrz_enable = params.diarize;
 
         if (params.split_on_word) {
             wparams.max_len = 1;
             wparams.token_timestamps = true;
         }
 
-        if (whisper_full(ctx, wparams, pcmf32.data(), pcmf32.size()) != 0)
+        const int rc = params.n_processors > 1
+            ? whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors)
+            : whisper_full(ctx, wparams, pcmf32.data(), pcmf32.size());
+
+        if (rc != 0)
         {
             jsonResult["@type"] = "error";
-            jsonResult["message"] = "failed to process audio";
+            jsonResult["message"] = "Failed to process audio: " + fname_inp;
+            whisper_free(ctx);
             return jsonResult;
         }
 
@@ -241,6 +277,12 @@ json transcribe(json jsonBody) noexcept
 }
 extern "C"
 {
+    FUNCTION_ATTRIBUTE
+    void whisper_kit_free(char *ptr)
+    {
+        std::free(ptr);
+    }
+
     FUNCTION_ATTRIBUTE
     char *request(char *body)
     {

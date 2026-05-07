@@ -49,8 +49,8 @@ final request2 = TranscriptionPreset.accurate.toRequest('/path/to/audio.wav');
 ```dart
 final transcriber = BatchTranscriber(whisper);
 
-final results = await transcriber.transcribeAll(
-  ['/audio1.wav', '/audio2.wav', '/audio3.wav'],
+final results = await transcriber.transcribeBatch(
+  audioPaths: ['/audio1.wav', '/audio2.wav', '/audio3.wav'],
   options: BatchOptions(parallel: true, maxConcurrency: 2),
   onProgress: (p) => print('${p.completed}/${p.total}'),
 );

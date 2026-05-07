@@ -105,9 +105,11 @@ final canLoad = MemoryOptimizer.canLoadModel('small', availableMemoryMB);
 
 ```dart
 // Don't keep models in memory when not needed
-await whisper.initModel();
-// ... use it ...
-// Model is released when Whisper instance is garbage collected
+// Models download on first `transcribe()` call if missing.
+// If you want to "warm up" the model, run a short transcription once:
+await whisper.transcribe(
+  transcribeRequest: TranscribeRequest(audio: '/path/to/short.wav'),
+);
 ```
 
 #### 2. Process in Chunks
@@ -189,14 +191,14 @@ switch (category) {
 
 ```dart
 // Sequential (lower memory, slower)
-final results = await transcriber.transcribeAll(
-  files,
+final results = await transcriber.transcribeBatch(
+  audioPaths: files,
   options: BatchOptions(parallel: false),
 );
 
 // Parallel (faster, more memory)
-final results = await transcriber.transcribeAll(
-  files,
+final results = await transcriber.transcribeBatch(
+  audioPaths: files,
   options: BatchOptions(
     parallel: true,
     maxConcurrency: 2,  // Limit concurrent operations
@@ -348,7 +350,6 @@ final benchmarks = <ModelBenchmark>[];
 
 for (final model in ['tiny', 'base', 'small']) {
   final whisper = Whisper(model: WhisperModel.values.byName(model));
-  await whisper.initModel();
   
   final sw = Stopwatch()..start();
   await whisper.transcribe(...);

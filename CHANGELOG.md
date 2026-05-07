@@ -5,6 +5,23 @@ All notable changes to the WhisperKit Flutter package will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-05-07
+
+### Fixed
+- **FFI memory safety**: native JSON responses are now freed via an exported `whisper_kit_free()` instead of a mismatched allocator free.
+- **Method channel audio**: `getAudioData()` now properly base64-decodes bytes.
+- **Native request wiring**: `n_processors`, `diarize` (speaker-turn detection), `speed_up`, and `is_special_tokens` are forwarded into `whisper.cpp` params; language `"auto"` is normalized correctly.
+- **Errors**: improved native error messages with audio/model context.
+- **Robust downloads**: model downloads now write to `*.part` and replace atomically on success; HTTP client is always closed.
+- **iOS platform API**: added `requestStoragePermission` / `checkStoragePermission` aliases and aligned audio-capture responses to include `success` and `duration`.
+- **Example app**: simplified to a minimal, asset-based transcription demo; removed duplicate tap handling in `AnimatedTranscribeButton`.
+
+### Changed
+- **Packaging**: expanded `.pubignore` to exclude Gradle/CMake caches and `local.properties`; removed local build artifacts from the workspace.
+- **Deps**: removed unused `plugin_platform_interface` dependency.
+- **Docs**: README + `doc/` aligned to actual APIs and current version.
+- **CI**: added a GitHub Actions workflow for `pub get`, `analyze`, and `publish --dry-run`.
+
 ## [0.3.0] - 2024-12-23
 
 ### Added

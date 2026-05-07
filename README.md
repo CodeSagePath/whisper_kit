@@ -1,65 +1,65 @@
-# Whisper Kit (Android Only)
+# Whisper Kit
 
-A Flutter plugin that brings OpenAI's Whisper ASR (Automatic Speech Recognition) capabilities natively into your Android app. It supports offline speech-to-text transcription using Whisper models directly on the device.
+On-device speech-to-text for Flutter using OpenAI Whisper via `whisper.cpp`. Transcribe audio locally (no cloud API required once models are downloaded).
 
 ---
 
 ## Features
 
-- **Audio File Transcription**: Transcribe WAV audio files to text using OpenAI's Whisper models
-- **Multiple Whisper Models**: Support for various Whisper model sizes (Tiny, Base, Small, Medium)
-- **Automatic Model Management**: Models are automatically downloaded when needed, with optional progress tracking
-- **Android Focused**: Thoroughly tested and confirmed to be working seamlessly on Android devices
-- **Offline Functionality**: No need for external APIs or cloud services – all processing happens directly on the device
-- **Native Integration**: Efficiently integrates the native `whisper.cpp` library for optimal performance
-- **Language Support**: Automatic language detection and translation to English
-- **Timestamped Segments**: Get transcription with precise timestamp information for each segment
+- Offline transcription (models downloaded on first use)
+- Multiple Whisper model sizes (`tiny`, `base`, `small`, `medium`, `large-v1`, `large-v2`)
+- Language auto-detection or fixed language
+- Optional translation to English
+- Timestamped segments (optional)
+- Download progress callback
+- Typed exceptions (`ModelException`, `AudioException`, `TranscriptionException`, `PermissionException`)
+
+## Stable API (recommended)
+
+- `Whisper` + `TranscribeRequest` for transcription
+- `downloadModel(...)` for manual downloads with progress
+- Catch `WhisperKitException` (or its typed subclasses) for errors
+
+## Experimental modules
+
+This package exports a number of optional helpers under `whisper_kit/src/*` (batching, caching, telemetry, cloud storage, etc.). Consider them **experimental** unless explicitly documented as stable.
 
 ---
 
 ## Installation
 
-1. **Add the dependency**:
+Add to your `pubspec.yaml`:
 
-    Open your `pubspec.yaml` file and add the following line under `dependencies`:
+```yaml
+dependencies:
+  whisper_kit: ^0.3.1
+```
 
-    ```yaml
-    whisper_kit: ^latest_version  # Replace with the latest version (current 0.1.0)
-    ```
+Then:
 
-2. **Get the packages**:
+```bash
+flutter pub get
+```
 
-    Run the following command in your terminal within your Flutter project directory:
+### Android permissions
 
-    ```bash
-    flutter pub get
-    ```
+If you record audio from the mic, add:
 
-3. **Android Configuration**:
+```xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+```
 
-    Ensure your Android project has the necessary permissions and configuration:
-
-    Add these permissions to your `android/app/src/main/AndroidManifest.xml`:
-
-    ```xml
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    ```
-
-4. **Ensure CMake and NDK Support (Android)**:
-
-    Make sure your Android project is configured to use CMake and the Android NDK. Flutter projects typically include this setup by default. If you encounter build issues related to native code, refer to the Flutter documentation on adding native code to your project.
+Model download requires network access. After models are downloaded, transcription can run offline.
 
 ---
 
 ## Platform Support
 
-| Platform | Status     |
-|----------|------------|
-| Android  | Working    |
-| iOS      | Planned    |
-| Web      | Not yet    |
+| Platform | Status |
+|----------|--------|
+| Android  | Working |
+| iOS      | Working (beta) |
+| macOS    | Experimental |
 
 ---
 
@@ -75,7 +75,7 @@ import 'package:whisper_kit/whisper_kit.dart';
 
 ### 2. Basic Usage Example
 
-Here's a comprehensive example of how to use the Whisper Kit for transcription:
+Example of how to transcribe a WAV file:
 
 #### Audio File Transcription
 
@@ -91,6 +91,11 @@ class TranscriptionExample {
       model: WhisperModel.base,
       // Optional: custom download host (defaults to HuggingFace)
       downloadHost: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main',
+      // Optional: download progress (received bytes, total bytes)
+      onDownloadProgress: (received, total) {
+        final pct = total > 0 ? (received / total * 100).toStringAsFixed(1) : '?';
+        print('Model download: $pct%');
+      },
     );
 
     // Create a transcription request
@@ -111,8 +116,12 @@ class TranscriptionExample {
           print('[${segment.fromTs} - ${segment.toTs}]: ${segment.text}');
         }
       }
-    } catch (e) {
-      print('Error during transcription: $e');
+    } on ModelException catch (e) {
+      print('Model error: $e');
+    } on AudioException catch (e) {
+      print('Audio error: $e');
+    } on TranscriptionException catch (e) {
+      print('Transcription error: $e');
     }
   }
 }
@@ -158,7 +167,7 @@ class ModelManager {
       await downloadModel(
         model: WhisperModel.base,
         destinationPath: '/path/to/model/directory',
-        onProgress: (int received, int total) {
+        onDownloadProgress: (int received, int total) {
           final progress = (received / total * 100).toStringAsFixed(1);
           print('Download progress: $progress%');
         },
@@ -290,8 +299,8 @@ factory TranscribeRequest({
   int nProcessors = 1,          // Number of processors
   bool splitOnWord = false,     // Split on word boundaries
   bool noFallback = false,      // Disable fallback
-  bool diarize = false,         // Enable speaker diarization
-  bool speedUp = false,         // Speed up processing
+  bool diarize = false,         // Speaker-turn detection (tinydiarize)
+  bool speedUp = false,         // Speed up processing (quality tradeoff)
 });
 ```
 
@@ -325,7 +334,7 @@ Future<void> downloadModel({
   required WhisperModel model,
   required String destinationPath,
   String? downloadHost,
-  Function(int received, int total)? onProgress,
+  Function(int received, int total)? onDownloadProgress,
 });
 ```
 
@@ -334,8 +343,12 @@ Future<void> downloadModel({
 ## Audio Requirements
 
 ### Supported Formats
-- **WAV files** (recommended): 16kHz, mono, 16-bit PCM
-- **Other formats**: May require conversion before processing
+- **WAV (required by native core today)**: 16kHz, 16-bit PCM, mono or stereo
+- Other formats (mp3/m4a/flac/ogg) must be converted to WAV before calling `transcribe()`.
+
+## Limitations
+
+- The native core currently accepts WAV input only (16kHz, 16-bit PCM, mono/stereo). Other formats must be converted before transcription.
 
 ### Audio Quality Tips
 - Use a quiet environment for best results
@@ -346,28 +359,23 @@ Future<void> downloadModel({
 ---
 
 ## Error Handling
-
-Common errors and their solutions:
+Catch typed exceptions for reliable handling:
 
 ```dart
-final Whisper whisper = Whisper(model: WhisperModel.base);
-final TranscribeRequest request = TranscribeRequest(audio: audioPath);
-
 try {
   final result = await whisper.transcribe(transcribeRequest: request);
-  print('Transcription: ${result.text}');
-} catch (e) {
-  if (e.toString().contains('Model')) {
-    print('Model error. The model may need to be downloaded.');
-  } else if (e.toString().contains('audio') || e.toString().contains('Audio')) {
-    print('Audio format error. Please ensure the audio is in WAV format (16kHz, mono, 16-bit PCM).');
-  } else {
-    print('Transcription failed: $e');
-  }
+  print(result.text);
+} on ModelException catch (e) {
+  // Download/validation/model path issues
+  print(e);
+} on AudioException catch (e) {
+  // WAV requirements not met, file missing, etc
+  print(e);
+} on TranscriptionException catch (e) {
+  // Native processing errors
+  print(e);
 }
 ```
-
-> **Tip:** The library throws generic `Exception` objects with descriptive messages. Check the exception message to determine the type of error.
 
 ---
 
@@ -382,20 +390,14 @@ try {
 
 ## Project Structure
 
-├── lib/
-│   └── whisper_kit.dart           # Dart wrapper and plugin interface
-├── src/
-│   ├── main.cpp                   # Native C++ bindings
-├── android/
-│   ├── build.gradle
-│   ├── src/main/
-│   │   └── java/com/example/whisper_kit/   # Android JNI bridge
-│   │   └── cpp/                   # Compiled native library output
-│   ├── CMakeLists.txt
-├── example/
-│   ├── lib/main.dart             # Sample Flutter usage project
-├── .gitignore
-└── README.md
+├── lib/                          # Public Dart API
+│   ├── whisper_kit.dart           # Main entrypoint
+│   └── download_model.dart        # Model download helper
+├── src/                          # Native whisper.cpp bridge (C/C++)
+├── ios/src/                      # iOS native whisper.cpp bridge (C/C++)
+├── ios/Classes/                  # iOS method-channel implementation
+├── android/                      # Android build scaffolding for the FFI plugin
+└── example/                      # Minimal demo app using bundled WAV assets
 
 ---
 
@@ -423,3 +425,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [OpenAI Whisper](https://github.com/openai/whisper) for the original speech recognition model
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) for the efficient C++ implementation
 - Flutter community for feedback and support
+
+## Documentation
+
+- `doc/GETTING_STARTED.md`
+- `doc/API_REFERENCE.md`
+- `doc/PERFORMANCE_GUIDE.md`

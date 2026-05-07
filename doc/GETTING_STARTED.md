@@ -20,7 +20,7 @@ Add WhisperKit to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  whisper_kit: ^0.3.0
+  whisper_kit: ^0.3.1
 ```
 
 ### 2. Install
@@ -38,13 +38,12 @@ Add permissions to `android/app/src/main/AndroidManifest.xml`:
 ```xml
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 <uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 ```
 
 Ensure minimum SDK version in `android/app/build.gradle`:
 
 ```gradle
-minSdkVersion 21
+minSdkVersion 24
 ```
 
 #### iOS
@@ -216,8 +215,8 @@ class BatchProcessor {
   Future<void> processFolder(List<String> files) async {
     final transcriber = BatchTranscriber(whisper);
     
-    final results = await transcriber.transcribeAll(
-      files,
+    final results = await transcriber.transcribeBatch(
+      audioPaths: files,
       options: BatchOptions(parallel: true, maxConcurrency: 2),
       onProgress: (p) {
         print('Progress: ${p.completed}/${p.total}');

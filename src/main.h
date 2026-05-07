@@ -12,6 +12,7 @@ extern "C"
 #endif
 
     char *request(char *body);
+    void whisper_kit_free(char *ptr);
 
 #ifdef __cplusplus
 }

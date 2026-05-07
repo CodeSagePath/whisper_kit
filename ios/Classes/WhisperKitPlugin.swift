@@ -35,6 +35,10 @@ public class WhisperKitPlugin: NSObject, FlutterPlugin {
       requestMicrophonePermission(result: result)
     case "checkMicrophonePermission":
       checkMicrophonePermission(result: result)
+    case "requestStoragePermission":
+      requestStoragePermission(result: result)
+    case "checkStoragePermission":
+      checkStoragePermission(result: result)
     case "requestDocumentsPermission":
       requestDocumentsPermission(result: result)
     case "checkDocumentsPermission":
@@ -122,6 +126,16 @@ public class WhisperKitPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  // iOS "storage" is effectively Documents access. Provide aliases so
+  // Dart can call a consistent method name across platforms.
+  private func requestStoragePermission(result: @escaping FlutterResult) {
+    requestDocumentsPermission(result: result)
+  }
+
+  private func checkStoragePermission(result: @escaping FlutterResult) {
+    checkDocumentsPermission(result: result)
+  }
+
   private func checkDocumentsPermission(result: @escaping FlutterResult) {
     let status = permissionManager.getDocumentsPermissionStatus()
     result([
@@ -176,6 +190,7 @@ public class WhisperKitPlugin: NSObject, FlutterPlugin {
       DispatchQueue.main.async {
         if success {
           result([
+            "success": true,
             "isRecording": true,
             "audioURL": self.audioRecorder.audioURL?.absoluteString
           ])
@@ -194,10 +209,15 @@ public class WhisperKitPlugin: NSObject, FlutterPlugin {
         if let error = error {
           result(FlutterError(code: "AUDIO_CAPTURE_ERROR", message: error.localizedDescription, details: nil))
         } else {
+          let audioBytes = audioData?.count ?? 0
+          // 16kHz mono int16 PCM => 2 bytes per sample.
+          let durationMs = audioBytes > 0 ? Int((Double(audioBytes) / 2.0 / 16000.0) * 1000.0) : 0
           let response: [String: Any] = [
+            "success": true,
             "isRecording": false,
             "audioURL": audioURL?.absoluteString ?? "",
-            "audioDataLength": audioData?.count ?? 0
+            "audioDataLength": audioBytes,
+            "duration": durationMs
           ]
           result(response)
         }

@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:whisper_kit/src/platform_interface.dart';
@@ -91,7 +92,10 @@ class WhisperKitMethodChannel implements WhisperKitPlatformInterface {
         'startAudioCapture',
         {'shouldSave': saveToFile},
       );
-      return result?['success'] as bool? ?? false;
+      final success = result?['success'] as bool?;
+      if (success == true) return true;
+      final isRecording = result?['isRecording'] as bool?;
+      return isRecording == true;
     } on PlatformException {
       return false;
     }
@@ -120,8 +124,7 @@ class WhisperKitMethodChannel implements WhisperKitPlatformInterface {
       );
       final base64Data = result?['audioData'] as String?;
       if (base64Data == null) return null;
-      // Decode base64 to bytes
-      return List<int>.from(base64Data.codeUnits);
+      return base64Decode(base64Data);
     } on PlatformException {
       return null;
     }

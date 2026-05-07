@@ -49,7 +49,8 @@ Future<String> downloadModel({
   }
 
   final httpClient = HttpClient();
-  File? file;
+  RandomAccessFile? raf;
+  File? tempFile;
 
   try {
     Uri modelUri;
@@ -65,6 +66,8 @@ Future<String> downloadModel({
       );
     }
 
+    await Directory(destinationPath).create(recursive: true);
+
     final request = await httpClient.getUrl(modelUri);
     final response = await request.close();
 
@@ -72,7 +75,7 @@ Future<String> downloadModel({
     if (response.statusCode != 200) {
       throw ModelException.downloadFailed(
         model.modelName,
-        'HTTP ${response.statusCode}',
+        'HTTP ${response.statusCode} ($modelUri)',
       );
     }
 
@@ -81,8 +84,11 @@ Future<String> downloadModel({
       debugPrint('Content length: $contentLength bytes');
     }
 
-    file = File('$destinationPath/ggml-${model.modelName}.bin');
-    final raf = file.openSync(mode: FileMode.write);
+    final targetPath = '$destinationPath/ggml-${model.modelName}.bin';
+    final tempPath = '$targetPath.part';
+
+    tempFile = File(tempPath);
+    raf = tempFile.openSync(mode: FileMode.write);
 
     int receivedBytes = 0;
     await for (var chunk in response) {
@@ -96,34 +102,58 @@ Future<String> downloadModel({
     }
 
     await raf.close();
+    raf = null;
 
     // Validate downloaded file
-    if (!file.existsSync() || file.lengthSync() == 0) {
+    if (!tempFile.existsSync() || tempFile.lengthSync() == 0) {
       throw ModelException.downloadFailed(
         model.modelName,
-        'Downloaded file is empty or missing',
+        'Downloaded file is empty or missing ($modelUri -> $targetPath)',
       );
     }
 
-    if (kDebugMode) {
-      debugPrint('Download Done . Path = ${file.path}');
+    // Atomic-ish replace: rename temp into final.
+    final targetFile = File(targetPath);
+    if (targetFile.existsSync()) {
+      try {
+        targetFile.deleteSync();
+      } catch (_) {}
     }
-    return file.path;
+    tempFile.renameSync(targetPath);
+    tempFile = null;
+
+    if (kDebugMode) {
+      debugPrint('Download Done . Path = $targetPath');
+    }
+    return targetPath;
   } on ModelException {
     rethrow;
   } on SocketException catch (e) {
     throw ModelException.downloadFailed(
-        model.modelName, 'Network error: ${e.message}');
+      model.modelName,
+      'Network error: ${e.message}',
+    );
   } on HttpException catch (e) {
     throw ModelException.downloadFailed(
-        model.modelName, 'HTTP error: ${e.message}');
+      model.modelName,
+      'HTTP error: ${e.message}',
+    );
   } catch (e) {
-    // Clean up partial download on failure
-    if (file != null && file.existsSync()) {
+    throw ModelException.downloadFailed(
+      model.modelName,
+      '$e',
+    );
+  } finally {
+    try {
+      await raf?.close();
+    } catch (_) {}
+    try {
+      httpClient.close(force: true);
+    } catch (_) {}
+    if (tempFile != null && tempFile.existsSync()) {
       try {
-        file.deleteSync();
+        tempFile.deleteSync();
       } catch (_) {}
     }
-    throw ModelException.downloadFailed(model.modelName, e.toString());
   }
 }

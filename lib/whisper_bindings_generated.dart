@@ -36,4 +36,18 @@ class WhisperFlutterBindings {
           ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>>('request');
   late final _request = _requestPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>();
+
+  void whisper_kit_free(
+    ffi.Pointer<ffi.Char> ptr,
+  ) {
+    return _whisper_kit_free(
+      ptr,
+    );
+  }
+
+  late final _whisper_kit_freePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>(
+          'whisper_kit_free');
+  late final _whisper_kit_free =
+      _whisper_kit_freePtr.asFunction<void Function(ffi.Pointer<ffi.Char>)>();
 }
