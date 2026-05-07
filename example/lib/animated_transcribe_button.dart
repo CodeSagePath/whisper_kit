@@ -111,7 +111,6 @@ class _AnimatedTranscribeButtonState extends State<AnimatedTranscribeButton>
   void _handleTapUp(TapUpDetails details) {
     if (!widget.isLoading) {
       _scaleController.reverse();
-      widget.onPressed?.call();
     }
   }
 
@@ -129,52 +128,55 @@ class _AnimatedTranscribeButtonState extends State<AnimatedTranscribeButton>
         return Transform.scale(
           scale: _scaleAnimation.value *
               (widget.isLoading ? _pulseAnimation.value : 1.0),
-          child: GestureDetector(
-            onTapDown: _handleTapDown,
-            onTapUp: _handleTapUp,
-            onTapCancel: _handleTapCancel,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: widget.isLoading
-                      ? [
-                          const Color(0xFFE94560),
-                          const Color(0xFFE94560).withValues(alpha: 0.8),
-                        ]
-                      : [
-                          const Color(0xFFE94560),
-                          const Color(0xFFE94560).withValues(alpha: 0.9),
-                        ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFE94560).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                    spreadRadius: widget.isLoading ? 2 : 0,
-                  ),
-                ],
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: double.infinity,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: widget.isLoading
+                    ? [
+                        const Color(0xFFE94560),
+                        const Color(0xFFE94560).withValues(alpha: 0.8),
+                      ]
+                    : [
+                        const Color(0xFFE94560),
+                        const Color(0xFFE94560).withValues(alpha: 0.9),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Material(
-                color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE94560).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                  spreadRadius: widget.isLoading ? 2 : 0,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: widget.isLoading ? null : widget.onPressed,
-                  splashFactory: InkRipple.splashFactory,
-                  splashColor: Colors.white.withValues(alpha: 0.3),
-                  highlightColor: Colors.white.withValues(alpha: 0.2),
-                  child: Center(
-                    child: widget.isLoading
-                        ? _buildLoadingIndicator()
-                        : _buildIdleContent(),
-                  ),
+                onTapDown: widget.isLoading ? null : _handleTapDown,
+                onTapUp: widget.isLoading ? null : _handleTapUp,
+                onTapCancel: widget.isLoading ? null : _handleTapCancel,
+                onTap: widget.isLoading
+                    ? null
+                    : () {
+                        _scaleController.reverse();
+                        widget.onPressed?.call();
+                      },
+                splashFactory: InkRipple.splashFactory,
+                splashColor: Colors.white.withValues(alpha: 0.3),
+                highlightColor: Colors.white.withValues(alpha: 0.2),
+                child: Center(
+                  child: widget.isLoading
+                      ? _buildLoadingIndicator()
+                      : _buildIdleContent(),
                 ),
               ),
             ),

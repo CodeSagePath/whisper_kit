@@ -1,16 +1,16 @@
-# test_whisper
+# whisper_kit example
 
-A new Flutter project.
+Minimal demo app for `whisper_kit`.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+This demo transcribes one of the bundled WAV assets under `example/assets/` and shows model download progress.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Notes:
+- The native core currently expects WAV input (16kHz, 16-bit PCM).
+- No microphone permissions are required for this example (it does not record audio).
